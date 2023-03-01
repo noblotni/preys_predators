@@ -1,32 +1,6 @@
 """Implement a sheep, wolves and grass predation model."""
 import mesa
 import uuid
-from simulation_config import SimulationConfig
-
-# Number of ticks without grass
-# on a patch if eaten by a sheep
-GRASS_REGROWTH_TIME = 10
-GRID_WITDH = 100
-GRID_HEIGHT = 100
-
-# Number of sheeps at the first step
-INIT_NB_SHEEPS = 100
-# Initial energy of the sheeps
-SHEEP_INIT_ENERGY = 20
-# Energy gained from eating grass
-SHEEP_GAIN_FROM_GRASS = 4
-SHEEP_MOVE_LOSS = 2
-# Probability of reproduction for a sheep
-SHEEP_REPRODUCTION_RATE = 0.04
-# Number of wolves at the first step
-INIT_NB_WOLVES = 50
-# Initial energy of the wolves
-WOLF_INIT_ENERGY = 30
-# Energy gained from eating a sheep
-WOLF_GAIN_FROM_SHEEP = 20
-WOLF_MOVE_LOSS = 6
-# Probability of reproduction for a wolf
-WOLF_REPRODUCTION_RATE = 0.05
 
 
 class Sheep(mesa.Agent):
@@ -47,20 +21,25 @@ class Sheep(mesa.Agent):
         )
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
-        self.energy -= self.model.config.sheep_move_loss
+        self.energy -= self.model.config["sheep_move_loss"]
 
     def eat(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         for agent in cellmates:
             if isinstance(agent, Patch) and agent.grass:
                 agent.grass = False
-                self.energy += self.model.config.sheep_gain_from_grass
+                self.energy += self.model.config["sheep_gain_from_grass"]
                 break
 
     def reproduce(self):
         random_number = self.random.random()
-        if random_number > self.model.config.sheep_reproduction_rate:
-            new_sheep = Sheep(energy=self.model.config.sheep_init_energy)
+        if random_number > self.model.config["sheep_reproduction_rate"]:
+            new_id = uuid.uuid1()
+            new_sheep = Sheep(
+                unique_id=new_id.int,
+                model=self.model,
+                energy=self.model.config["sheep_init_energy"],
+            )
             self.model.scheduler.add(new_sheep)
             self.model.grid.place_agent(new_sheep, self.pos)
 
@@ -87,21 +66,26 @@ class Wolf(mesa.Agent):
         )
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
-        self.energy -= self.model.config.wolf_move_loss
+        self.energy -= self.model.config["wolf_move_loss"]
 
     def eat(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         for agent in cellmates:
             if isinstance(agent, Sheep):
-                self.energy += self.model.config.wolf_gain_from_sheep
+                self.energy += self.model.config["wolf_gain_from_sheep"]
                 agent.eaten_by_wolf = True
                 agent.die()
                 break
 
     def reproduce(self):
         random_number = self.random.random()
-        if random_number > self.model.config.wolf_reproduction_rate:
-            new_sheep = Wolf(energy=self.model.config.wolf_init_energy)
+        if random_number > self.model.config["wolf_reproduction_rate"]:
+            new_id = uuid.uuid1()
+            new_sheep = Wolf(
+                unique_id=new_id.int,
+                model=self.model,
+                energy=self.model.config["wolf_init_energy"],
+            )
             self.model.scheduler.add(new_sheep)
             self.model.grid.place_agent(new_sheep, self.pos)
 
@@ -118,7 +102,7 @@ class Patch(mesa.Agent):
         self.count_no_grass = 0
 
     def step(self):
-        if self.count_no_grass > self.model.config.grass_regrowth_time:
+        if self.count_no_grass > self.model.config["grass_regrowth_time"]:
             self.count_no_grass = 0
             self.green = True
 
@@ -127,11 +111,11 @@ class Patch(mesa.Agent):
 
 
 class PreysPredatorsModel(mesa.Model):
-    def __init__(self, config: SimulationConfig):
+    def __init__(self, config: dict):
         # Model parameters
         self.config = config
         self.grid = mesa.space.MultiGrid(
-            self.config.grid_width, self.config.grid_height, True
+            self.config["grid_width"], self.config["grid_height"], True
         )
         self.scheduler = mesa.time.SimultaneousActivation(self)
         self.init_all_agents()
