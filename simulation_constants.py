@@ -4,9 +4,9 @@ PERCENT_TO_PROBA = 1 / 100
 
 # Default constants
 # Number of sheeps at the first step
-DEFAULT_INIT_NB_SHEEPS = 100
+DEFAULT_INIT_NB_SHEEPS = 10
 # Number of wolves at the first step
-DEFAULT_INIT_NB_WOLVES = 50
+DEFAULT_INIT_NB_WOLVES = 10
 # Sheep reproduction rate (%)
 DEFAULT_SHEEP_REPRODUCTION_RATE = 4
 # Wolf reproduction rate (%)

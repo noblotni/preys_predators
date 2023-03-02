@@ -5,7 +5,7 @@ import uuid
 
 class Sheep(mesa.Agent):
     def __init__(self, unique_id, model, energy):
-        super.__init__(unique_id, model)
+        super().__init__(unique_id, model)
         self.energy = energy
         self.eaten_by_wolf = False
 
@@ -40,18 +40,20 @@ class Sheep(mesa.Agent):
                 model=self.model,
                 energy=self.model.config["sheep_init_energy"],
             )
-            self.model.scheduler.add(new_sheep)
-            self.model.grid.place_agent(new_sheep, self.pos)
+            new_sheep.pos = self.pos
+            self.model.born_agents.append(new_sheep)
 
     def die(self):
         if self.energy < 0 or self.eaten_by_wolf:
-            self.model.grid.remove_agent(self)
-            self.model.scheduler.remove(self)
+            self.model.died_agents.append(self)
+
+    def advance(self):
+        pass
 
 
 class Wolf(mesa.Agent):
     def __init__(self, unique_id, model, energy):
-        super.__init__(unique_id, model)
+        super().__init__(unique_id, model)
         self.energy = energy
 
     def step(self):
@@ -81,18 +83,20 @@ class Wolf(mesa.Agent):
         random_number = self.random.random()
         if random_number > self.model.config["wolf_reproduction_rate"]:
             new_id = uuid.uuid1()
-            new_sheep = Wolf(
+            new_wolf = Wolf(
                 unique_id=new_id.int,
                 model=self.model,
                 energy=self.model.config["wolf_init_energy"],
             )
-            self.model.scheduler.add(new_sheep)
-            self.model.grid.place_agent(new_sheep, self.pos)
+            new_wolf.pos = self.pos
+            self.model.born_agents.append(new_wolf)
 
     def die(self):
         if self.energy < 0:
-            self.model.grid.remove_agent(self)
-            self.model.scheduler.remove(self)
+            self.model.died_agents.append(self)
+
+    def advance(self):
+        pass
 
 
 class Patch(mesa.Agent):
@@ -109,6 +113,9 @@ class Patch(mesa.Agent):
         if not self.grass:
             self.count_no_grass += 1
 
+    def advance(self):
+        pass
+
 
 class PreysPredatorsModel(mesa.Model):
     def __init__(self, config: dict):
@@ -118,6 +125,12 @@ class PreysPredatorsModel(mesa.Model):
             self.config["grid_width"], self.config["grid_height"], True
         )
         self.scheduler = mesa.time.SimultaneousActivation(self)
+        self.datacollector = mesa.DataCollector(
+            model_reporters={"population": compute_population}
+        )
+        self.running = False
+        self.died_agents = []
+        self.born_agents = []
         self.init_all_agents()
 
     def init_all_agents(self):
@@ -129,10 +142,10 @@ class PreysPredatorsModel(mesa.Model):
                 self.scheduler.add(patch)
                 self.grid.place_agent(patch, (i, j))
         # Create and place the sheeps
-        for _ in range(self.config.init_nb_sheeps):
+        for _ in range(self.config["init_nb_sheeps"]):
             unique_id = uuid.uuid1()
             sheep = Sheep(
-                energy=self.config.sheep_init_energy,
+                energy=self.config["sheep_init_energy"],
                 unique_id=unique_id.int,
                 model=self,
             )
@@ -141,12 +154,45 @@ class PreysPredatorsModel(mesa.Model):
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(sheep, (x, y))
         # Create and place the wolves
-        for _ in range(self.config.init_nb_wolves):
+        for _ in range(self.config["init_nb_wolves"]):
             unique_id = uuid.uuid1()
             wolf = Wolf(
-                energy=self.config.wolf_init_energy, unique_id=unique_id.int, model=self
+                energy=self.config["wolf_init_energy"],
+                unique_id=unique_id.int,
+                model=self,
             )
             self.scheduler.add(wolf)
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(wolf, (x, y))
+
+    def kill_agents(self):
+        while self.died_agents != []:
+            agent = self.died_agents.pop()
+            if agent.pos:
+                self.grid.remove_agent(agent)
+                self.scheduler.remove(agent)
+
+    def give_birth_to_agents(self):
+        while self.born_agents != []:
+            agent = self.born_agents.pop()
+            if agent.pos:
+                self.grid.place_agent(agent, agent.pos)
+                self.scheduler.add(agent)
+
+    def step(self):
+        self.datacollector.collect(self)
+        self.scheduler.step()
+        self.kill_agents()
+        self.give_birth_to_agents()
+
+
+def compute_population(model: PreysPredatorsModel):
+    count_sheeps = 0
+    count_wolves = 0
+    for agent in model.scheduler.agents:
+        if isinstance(agent, Sheep):
+            count_sheeps += 1
+        elif isinstance(agent, Wolf):
+            count_wolves += 1
+    return (count_sheeps, count_wolves)
