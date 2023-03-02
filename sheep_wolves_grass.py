@@ -25,15 +25,16 @@ class Sheep(mesa.Agent):
 
     def eat(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        for agent in cellmates:
-            if isinstance(agent, Patch) and agent.grass:
-                agent.grass = False
-                self.energy += self.model.config["sheep_gain_from_grass"]
-                break
+        if len(cellmates) > 1:
+            for agent in cellmates:
+                if isinstance(agent, Patch) and agent.grass:
+                    agent.grass = False
+                    self.energy += self.model.config["sheep_gain_from_grass"]
+                    break
 
     def reproduce(self):
         random_number = self.random.random()
-        if random_number > self.model.config["sheep_reproduction_rate"]:
+        if random_number < self.model.config["sheep_reproduction_rate"]:
             new_id = uuid.uuid1()
             new_sheep = Sheep(
                 unique_id=new_id.int,
@@ -44,11 +45,10 @@ class Sheep(mesa.Agent):
             self.model.born_agents.append(new_sheep)
 
     def die(self):
-        if self.energy < 0 or self.eaten_by_wolf:
+        if (
+            self.energy < 0 or self.eaten_by_wolf
+        ) and not self in self.model.died_agents:
             self.model.died_agents.append(self)
-
-    def advance(self):
-        pass
 
 
 class Wolf(mesa.Agent):
@@ -72,16 +72,17 @@ class Wolf(mesa.Agent):
 
     def eat(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        for agent in cellmates:
-            if isinstance(agent, Sheep):
-                self.energy += self.model.config["wolf_gain_from_sheep"]
-                agent.eaten_by_wolf = True
-                agent.die()
-                break
+        if len(cellmates) > 1:
+            for agent in cellmates:
+                if isinstance(agent, Sheep):
+                    self.energy += self.model.config["wolf_gain_from_sheep"]
+                    agent.eaten_by_wolf = True
+                    agent.die()
+                    break
 
     def reproduce(self):
         random_number = self.random.random()
-        if random_number > self.model.config["wolf_reproduction_rate"]:
+        if random_number < self.model.config["wolf_reproduction_rate"]:
             new_id = uuid.uuid1()
             new_wolf = Wolf(
                 unique_id=new_id.int,
@@ -92,11 +93,8 @@ class Wolf(mesa.Agent):
             self.model.born_agents.append(new_wolf)
 
     def die(self):
-        if self.energy < 0:
+        if self.energy < 0 and not self in self.model.died_agents:
             self.model.died_agents.append(self)
-
-    def advance(self):
-        pass
 
 
 class Patch(mesa.Agent):
@@ -113,9 +111,6 @@ class Patch(mesa.Agent):
         if not self.grass:
             self.count_no_grass += 1
 
-    def advance(self):
-        pass
-
 
 class PreysPredatorsModel(mesa.Model):
     def __init__(self, config: dict):
@@ -124,7 +119,7 @@ class PreysPredatorsModel(mesa.Model):
         self.grid = mesa.space.MultiGrid(
             self.config["grid_width"], self.config["grid_height"], True
         )
-        self.scheduler = mesa.time.SimultaneousActivation(self)
+        self.scheduler = mesa.time.RandomActivation(self)
         self.datacollector = mesa.DataCollector(
             model_reporters={"population": compute_population}
         )
@@ -169,16 +164,14 @@ class PreysPredatorsModel(mesa.Model):
     def kill_agents(self):
         while self.died_agents != []:
             agent = self.died_agents.pop()
-            if agent.pos:
-                self.grid.remove_agent(agent)
-                self.scheduler.remove(agent)
+            self.scheduler.remove(agent)
+            self.grid.remove_agent(agent)
 
     def give_birth_to_agents(self):
         while self.born_agents != []:
             agent = self.born_agents.pop()
-            if agent.pos:
-                self.grid.place_agent(agent, agent.pos)
-                self.scheduler.add(agent)
+            self.scheduler.add(agent)
+            self.grid.place_agent(agent, agent.pos)
 
     def step(self):
         self.datacollector.collect(self)
