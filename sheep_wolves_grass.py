@@ -12,8 +12,9 @@ class Sheep(mesa.Agent):
     def step(self):
         self.move()
         self.die()
-        self.eat()
-        self.reproduce()
+        if not self in self.model.died_agents:
+            self.eat()
+            self.reproduce()
 
     def move(self):
         possible_steps = self.model.grid.get_neighborhood(
@@ -59,8 +60,9 @@ class Wolf(mesa.Agent):
     def step(self):
         self.move()
         self.die()
-        self.eat()
-        self.reproduce()
+        if not self in self.model.died_agents:
+            self.eat()
+            self.reproduce()
 
     def move(self):
         possible_steps = self.model.grid.get_neighborhood(
@@ -74,7 +76,7 @@ class Wolf(mesa.Agent):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1:
             for agent in cellmates:
-                if isinstance(agent, Sheep):
+                if isinstance(agent, Sheep) and not agent in self.model.died_agents:
                     self.energy += self.model.config["wolf_gain_from_sheep"]
                     agent.eaten_by_wolf = True
                     agent.die()
