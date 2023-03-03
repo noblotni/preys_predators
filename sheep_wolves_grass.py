@@ -4,12 +4,15 @@ import mesa
 
 
 class Sheep(mesa.Agent):
+    """Handle sheep agents."""
+
     def __init__(self, unique_id, model, energy):
         super().__init__(unique_id, model)
         self.energy = energy
         self.eaten_by_wolf = False
 
     def step(self):
+        """Generic step for a sheep."""
         self.move()
         self.die()
         if not self in self.model.died_agents:
@@ -17,6 +20,7 @@ class Sheep(mesa.Agent):
             self.reproduce()
 
     def move(self):
+        """When a sheep moves on the grid."""
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
@@ -25,6 +29,7 @@ class Sheep(mesa.Agent):
         self.energy -= self.model.config["sheep_move_loss"]
 
     def eat(self):
+        """When a sheep eats grass."""
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1:
             for agent in cellmates:
@@ -34,6 +39,7 @@ class Sheep(mesa.Agent):
                     break
 
     def reproduce(self):
+        """When sheeps breed."""
         random_number = self.random.random()
         if random_number < self.model.config["sheep_reproduction_rate"]:
             new_id = uuid.uuid1()
@@ -46,6 +52,7 @@ class Sheep(mesa.Agent):
             self.model.born_agents.append(new_sheep)
 
     def die(self):
+        """When a sheep dies either from being eaten by a wolf or by natural death."""
         if (
             self.energy < 0 or self.eaten_by_wolf
         ) and not self in self.model.died_agents:
@@ -53,11 +60,14 @@ class Sheep(mesa.Agent):
 
 
 class Wolf(mesa.Agent):
+    """Handle wolves agents."""
+
     def __init__(self, unique_id, model, energy):
         super().__init__(unique_id, model)
         self.energy = energy
 
     def step(self):
+        """Generic step for wolf agents."""
         self.move()
         self.die()
         if not self in self.model.died_agents:
@@ -65,6 +75,7 @@ class Wolf(mesa.Agent):
             self.reproduce()
 
     def move(self):
+        """When a wolf moves on the grid."""
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
@@ -73,6 +84,7 @@ class Wolf(mesa.Agent):
         self.energy -= self.model.config["wolf_move_loss"]
 
     def eat(self):
+        """When a wolf eats a sheep."""
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1:
             for agent in cellmates:
@@ -83,6 +95,7 @@ class Wolf(mesa.Agent):
                     break
 
     def reproduce(self):
+        """When wolves breed."""
         random_number = self.random.random()
         if random_number < self.model.config["wolf_reproduction_rate"]:
             new_id = uuid.uuid1()
@@ -95,17 +108,21 @@ class Wolf(mesa.Agent):
             self.model.born_agents.append(new_wolf)
 
     def die(self):
+        """When a wolf dies of natural death."""
         if self.energy < 0 and not self in self.model.died_agents:
             self.model.died_agents.append(self)
 
 
 class Patch(mesa.Agent):
+    """Handle the grass."""
+
     def __init__(self, unique_id, model, grass: bool):
         super().__init__(unique_id, model)
         self.grass = grass
         self.count_no_grass = 0
 
     def step(self):
+        """Handle a generic step for grass agents."""
         if self.count_no_grass > self.model.config["grass_regrowth_time"]:
             self.count_no_grass = 0
             self.grass = True
@@ -115,8 +132,10 @@ class Patch(mesa.Agent):
 
 
 class PreysPredatorsModel(mesa.Model):
+    """Base class for the Preys-Predators model."""
+
     def __init__(self, config: dict):
-        # Model parameters
+        super().__init__()
         self.config = config
         self.grid = mesa.space.MultiGrid(
             self.config["grid_width"], self.config["grid_height"], True
@@ -131,6 +150,7 @@ class PreysPredatorsModel(mesa.Model):
         self.init_all_agents()
 
     def init_all_agents(self):
+        """Create the initial population."""
         # Fill the grid with grass patches
         for i in range(self.grid.width):
             for j in range(self.grid.height):
@@ -164,18 +184,21 @@ class PreysPredatorsModel(mesa.Model):
             self.grid.place_agent(wolf, (x, y))
 
     def kill_agents(self):
-        while self.died_agents != []:
+        """Handle the death of agents."""
+        while self.died_agents:
             agent = self.died_agents.pop()
             self.scheduler.remove(agent)
             self.grid.remove_agent(agent)
 
     def give_birth_to_agents(self):
-        while self.born_agents != []:
+        """Create new agents (reproduction)."""
+        while self.born_agents:
             agent = self.born_agents.pop()
             self.scheduler.add(agent)
             self.grid.place_agent(agent, agent.pos)
 
     def step(self):
+        """Handle a generic step for the whole model."""
         self.datacollector.collect(self)
         self.scheduler.step()
         self.kill_agents()
@@ -183,6 +206,7 @@ class PreysPredatorsModel(mesa.Model):
 
 
 def compute_population(model: PreysPredatorsModel):
+    """Count the number of sheeps, wolves and grass on the grid."""
     count_sheeps = 0
     count_wolves = 0
     count_grass = 0
