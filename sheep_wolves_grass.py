@@ -1,21 +1,30 @@
 """Implement a sheep, wolves and grass predation model."""
 import uuid
 import mesa
+import logging
+
+# pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation
 
 
 class Sheep(mesa.Agent):
     """Handle sheep agents."""
 
     def __init__(self, unique_id, model, energy):
+        logging.debug(
+            "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
+                unique_id, energy
+            )
+        )
         super().__init__(unique_id, model)
         self.energy = energy
         self.eaten_by_wolf = False
 
     def step(self):
         """Generic step for a sheep."""
-        self.move()
-        self.die()
         if not self in self.model.died_agents:
+            # this order matters: see the doc
+            self.move()
+            self.die()
             self.eat()
             self.reproduce()
 
@@ -26,6 +35,7 @@ class Sheep(mesa.Agent):
         )
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
+        # when a sheep moves, it looses an energy unit
         self.energy -= self.model.config["sheep_move_loss"]
 
     def eat(self):
@@ -65,12 +75,18 @@ class Wolf(mesa.Agent):
     def __init__(self, unique_id, model, energy):
         super().__init__(unique_id, model)
         self.energy = energy
+        logging.debug(
+            "[Wolf] Creating a wolf agent with ID {} and energy = {}".format(
+                unique_id, energy
+            )
+        )
 
     def step(self):
         """Generic step for wolf agents."""
-        self.move()
-        self.die()
         if not self in self.model.died_agents:
+            # this order matters: see the doc
+            self.move()
+            self.die()
             self.eat()
             self.reproduce()
 
