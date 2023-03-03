@@ -1,8 +1,8 @@
 """Handle the simulation configuration."""
 import os
 
-GRID_WIDTH = int(os.environ.get("GRID_WIDTH", default=65))
-GRID_HEIGHT = int(os.environ.get("GRID_HEIGHT", default=40))
+GRID_WIDTH = int(os.environ.get("GRID_WIDTH", default=40))
+GRID_HEIGHT = int(os.environ.get("GRID_HEIGHT", default=65))
 # Number of steps without grass
 # on a patch if eaten by a sheep
 GRASS_REGROWTH_TIME = int(os.environ.get("GRASS_REGROWTH_TIME", default=30))

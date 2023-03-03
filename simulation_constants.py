@@ -1,4 +1,5 @@
 """Contain simulation constants."""
+from pathlib import Path
 
 PERCENT_TO_PROBA = 1 / 100
 
@@ -33,3 +34,6 @@ MAX_SHEEP_REPRODUCTION_RATE = 20
 MIN_WOLF_REPRODUCTION_RATE = 1
 # Maximal value of the wolves' reproduction rate (%)
 MAX_WOLF_REPRODUCTION_RATE = 20
+
+# Image
+ASCII_SHEEPS_PATH = Path("./assets/ascii_sheeps.png")

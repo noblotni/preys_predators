@@ -1,9 +1,11 @@
 """GUI to run the simulation."""
+import numpy as np
 import tkinter as tk
+from PIL import ImageTk, Image
 from threading import Thread
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
-from sheep_wolves_grass import PreysPredatorsModel
+from sheep_wolves_grass import PreysPredatorsModel, Sheep, Wolf
 import simulation_constants as cons
 import simulation_config as config
 
@@ -29,7 +31,7 @@ class SimulationApp:
             master=self.window,
             width=self.window.winfo_width() // 4,
             height=self.window.winfo_height(),
-            bg="gray",
+            bg="black",
             app=self,
         )
         self.left_panel.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT)
@@ -48,6 +50,20 @@ class SimulationApp:
             self.right_panel.update_population_plot(
                 time=time, nb_sheeps=nb_sheeps, nb_wolves=nb_wolves
             )
+            sheeps_matrix, wolves_matrix = self.compute_population_matrices()
+            self.right_panel.update_grid_plot(sheeps_matrix, wolves_matrix)
+
+    def compute_population_matrices(self):
+        sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
+        wolves_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
+        for cell in self.model.grid.coord_iter():
+            cell_content, x, y = cell
+            for agent in cell_content:
+                if isinstance(agent, Sheep):
+                    sheeps_matrix[x, y] += 1
+                elif isinstance(agent, Wolf):
+                    wolves_matrix[x, y] += 1
+        return sheeps_matrix, wolves_matrix
 
     def run(self):
         self.window.mainloop()
@@ -60,6 +76,12 @@ class ParametersFrame(tk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
+        self.canvas_sheep = tk.Canvas(master=self, bg="black", highlightthickness=0)
+        self.canvas_sheep.pack(fill=tk.BOTH, expand=True)
+        self.img = Image.open(cons.ASCII_SHEEPS_PATH)
+        # Resize image to fit the canvas
+        self.img = ImageTk.PhotoImage(self.img)
+        self.canvas_sheep.create_image(80, 80, anchor=tk.NW, image=self.img)
         label_sheeps = tk.Label(master=self, text="Initial number of sheeps: ")
         label_sheeps.pack()
         self.init_nb_sheeps = tk.IntVar()
@@ -142,6 +164,8 @@ class ParametersFrame(tk.Frame):
         wolves_energy_gain_scale.pack(fill=tk.X)
         setup_button = tk.Button(master=self, text="Set up", command=self.setup_model)
         setup_button.pack()
+        stop_button = tk.Button(master=self, text="Stop", command=self.stop_model)
+        stop_button.pack()
         run_button = tk.Button(master=self, text="Run", command=self.run_model)
         run_button.pack()
 
@@ -152,7 +176,7 @@ class ParametersFrame(tk.Frame):
         self.app.model_config["sheep_reproduction_rate"] = (
             self.sheep_reproduction_rate.get() * cons.PERCENT_TO_PROBA
         )
-        self.app.model_config["wolf_reproducyion_rate"] = (
+        self.app.model_config["wolf_reproduction_rate"] = (
             self.wolf_reproduction_rate.get() * cons.PERCENT_TO_PROBA
         )
         self.app.model_config[
@@ -160,6 +184,9 @@ class ParametersFrame(tk.Frame):
         ] = self.sheep_gain_from_grass.get()
         self.app.model_config["wolf_gain_from_sheep"] = self.wolf_gain_from_sheep.get()
         self.app.model = PreysPredatorsModel(self.app.model_config)
+
+    def stop_model(self):
+        self.app.model.running = False
 
     def run_model(self):
         thread = Thread(target=self.app.run_model)
@@ -190,9 +217,24 @@ class PlotsFrame(tk.Frame):
         self.canvas_populations.draw()
 
     def init_grid_plot(self):
-        self.grid_figure = plt.figure()
-        self.grid_ax = self.grid_figure.add_subplot()
-        self.grid_ax.grid()
+        self.grid_figure, self.gridfig_axs = plt.subplots(1, 2)
+        self.gridfig_axs[0].matshow(np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT)))
+        self.gridfig_axs[0].set_title("Sheeps on the grid")
+        self.gridfig_axs[1].matshow(np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT)))
+        self.gridfig_axs[1].set_title("Wolves on the grid")
+        self.gridfig_axs[0].axis("off")
+        self.gridfig_axs[1].axis("off")
+
+    def update_grid_plot(self, sheeps_matrix, wolves_matrix):
+        self.gridfig_axs[0].clear()
+        self.gridfig_axs[1].clear()
+        self.gridfig_axs[0].matshow(sheeps_matrix)
+        self.gridfig_axs[0].set_title("Sheeps on the grid")
+        self.gridfig_axs[1].matshow(wolves_matrix)
+        self.gridfig_axs[1].set_title("Wolves on the grid")
+        self.gridfig_axs[0].axis("off")
+        self.gridfig_axs[1].axis("off")
+        self.canvas_grid.draw()
 
     def create_widgets(self):
         # Create frames
