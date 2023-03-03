@@ -5,12 +5,14 @@ import logging
 
 # pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation
 
+logging.basicConfig(level=logging.INFO)
+
 
 class Sheep(mesa.Agent):
     """Handle sheep agents."""
 
     def __init__(self, unique_id, model, energy):
-        logging.debug(
+        logging.info(
             "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
                 unique_id, energy
             )
@@ -33,10 +35,16 @@ class Sheep(mesa.Agent):
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
+        # pick a new position at random
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
         # when a sheep moves, it looses an energy unit
         self.energy -= self.model.config["sheep_move_loss"]
+        logging.debug(
+            "[Sheep] Sheep agent with ID {} has remaining energy of {}".format(
+                self.unique_id, self.energy
+            )
+        )
 
     def eat(self):
         """When a sheep eats grass."""
@@ -46,6 +54,11 @@ class Sheep(mesa.Agent):
                 if isinstance(agent, Patch) and agent.grass:
                     agent.grass = False
                     self.energy += self.model.config["sheep_gain_from_grass"]
+                    logging.info(
+                        "[Sheep] Sheep agent with ID {} eats a Grass patch. Remaining energy is {}".format(
+                            self.unique_id, self.energy
+                        )
+                    )
                     break
 
     def reproduce(self):
@@ -67,6 +80,9 @@ class Sheep(mesa.Agent):
             self.energy < 0 or self.eaten_by_wolf
         ) and not self in self.model.died_agents:
             self.model.died_agents.append(self)
+            logging.info(
+                "[Sheep] Sheep agent with ID {} has died.".format(self.unique_id)
+            )
 
 
 class Wolf(mesa.Agent):
@@ -75,7 +91,7 @@ class Wolf(mesa.Agent):
     def __init__(self, unique_id, model, energy):
         super().__init__(unique_id, model)
         self.energy = energy
-        logging.debug(
+        logging.info(
             "[Wolf] Creating a wolf agent with ID {} and energy = {}".format(
                 unique_id, energy
             )
@@ -106,6 +122,11 @@ class Wolf(mesa.Agent):
             for agent in cellmates:
                 if isinstance(agent, Sheep) and not agent in self.model.died_agents:
                     self.energy += self.model.config["wolf_gain_from_sheep"]
+                    logging.info(
+                        "[Wolf] Wolf agent with ID {} has eaten Sheep agent with ID {}.".format(
+                            self.unique_id, agent.unique_id
+                        )
+                    )
                     agent.eaten_by_wolf = True
                     agent.die()
                     break
@@ -127,6 +148,9 @@ class Wolf(mesa.Agent):
         """When a wolf dies of natural death."""
         if self.energy < 0 and not self in self.model.died_agents:
             self.model.died_agents.append(self)
+            logging.info(
+                "[Wolf] Wolf agent with ID {} has died.".format(self.unique_id)
+            )
 
 
 class Patch(mesa.Agent):
