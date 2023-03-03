@@ -47,8 +47,12 @@ class SimulationApp:
             time = [i + 1 for i in range(population.shape[0])]
             nb_sheeps = [pop[0] for pop in population]
             nb_wolves = [pop[1] for pop in population]
+            nb_grass_over_four = [pop[2] // 4 for pop in population]
             self.right_panel.update_population_plot(
-                time=time, nb_sheeps=nb_sheeps, nb_wolves=nb_wolves
+                time=time,
+                nb_sheeps=nb_sheeps,
+                nb_wolves=nb_wolves,
+                nb_grass_over_four=nb_grass_over_four,
             )
             sheeps_matrix, wolves_matrix = self.compute_population_matrices()
             self.right_panel.update_grid_plot(sheeps_matrix, wolves_matrix)
@@ -79,7 +83,7 @@ class ParametersFrame(tk.Frame):
         self.canvas_sheep = tk.Canvas(master=self, bg="black", highlightthickness=0)
         self.canvas_sheep.pack(fill=tk.BOTH, expand=True)
         self.img = Image.open(cons.ASCII_SHEEPS_PATH)
-        # Resize image to fit the canvas
+        # Resize image to fit the canvas (To Do)
         self.img = ImageTk.PhotoImage(self.img)
         self.canvas_sheep.create_image(80, 80, anchor=tk.NW, image=self.img)
         label_sheeps = tk.Label(master=self, text="Initial number of sheeps: ")
@@ -205,13 +209,17 @@ class PlotsFrame(tk.Frame):
         self.pop_ax = self.population_figure.add_subplot()
         self.pop_ax.plot([], [], label="Number of sheeps", color="blue")
         self.pop_ax.plot([], [], label="Number of wolves", color="red")
+        self.pop_ax.plot([], [], label="Grass / 4", color="green")
         self.pop_ax.grid()
         self.pop_ax.legend()
 
-    def update_population_plot(self, time, nb_sheeps, nb_wolves):
+    def update_population_plot(
+        self, time: list, nb_sheeps: list, nb_wolves: list, nb_grass_over_four: list
+    ):
         self.pop_ax.clear()
         self.pop_ax.plot(time, nb_sheeps, label="Number of sheeps", color="blue")
         self.pop_ax.plot(time, nb_wolves, label="Number of wolves", color="red")
+        self.pop_ax.plot(time, nb_grass_over_four, label="Grass /4", color="green")
         self.pop_ax.grid()
         self.pop_ax.legend()
         self.canvas_populations.draw()

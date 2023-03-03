@@ -185,9 +185,12 @@ class PreysPredatorsModel(mesa.Model):
 def compute_population(model: PreysPredatorsModel):
     count_sheeps = 0
     count_wolves = 0
+    count_grass = 0
     for agent in model.scheduler.agents:
         if isinstance(agent, Sheep):
             count_sheeps += 1
         elif isinstance(agent, Wolf):
             count_wolves += 1
-    return (count_sheeps, count_wolves)
+        elif isinstance(agent, Patch) and agent.grass:
+            count_grass += 1
+    return (count_sheeps, count_wolves, count_grass)
