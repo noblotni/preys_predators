@@ -108,7 +108,7 @@ class Patch(mesa.Agent):
     def step(self):
         if self.count_no_grass > self.model.config["grass_regrowth_time"]:
             self.count_no_grass = 0
-            self.green = True
+            self.grass = True
 
         if not self.grass:
             self.count_no_grass += 1
