@@ -18,6 +18,7 @@ class Sheep(mesa.Agent):
             )
         )
         super().__init__(unique_id, model)
+        # note: unique_id and model attributes inherit from the Agent class
         self.energy = energy
         self.eaten_by_wolf = False
 
@@ -26,6 +27,7 @@ class Sheep(mesa.Agent):
         if not self in self.model.died_agents:
             # this order matters: see the doc
             self.move()
+            # note: die() method does not mean the current agent will die at this step
             self.die()
             self.eat()
             self.reproduce()
@@ -49,17 +51,18 @@ class Sheep(mesa.Agent):
     def eat(self):
         """When a sheep eats grass."""
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cellmates) > 1:
-            for agent in cellmates:
-                if isinstance(agent, Patch) and agent.grass:
-                    agent.grass = False
-                    self.energy += self.model.config["sheep_gain_from_grass"]
-                    logging.info(
-                        "[Sheep] Sheep agent with ID {} eats a Grass patch. Remaining energy is {}".format(
-                            self.unique_id, self.energy
-                        )
+        for agent in cellmates:
+            if isinstance(agent, Patch) and agent.grass:
+                # a surrounding Patch agent has grass to provide
+                agent.grass = False
+                # the Sheep agent eats the grass and gains energy
+                self.energy += self.model.config["sheep_gain_from_grass"]
+                logging.info(
+                    "[Sheep] Sheep agent with ID {} eats a Grass patch. Remaining energy is {}".format(
+                        self.unique_id, self.energy
                     )
-                    break
+                )
+                break
 
     def reproduce(self):
         """When sheeps breed."""
@@ -72,6 +75,7 @@ class Sheep(mesa.Agent):
                 energy=self.model.config["sheep_init_energy"],
             )
             new_sheep.pos = self.pos
+            # note: we could also make the new sheep pop on a surrounding grid cell
             self.model.born_agents.append(new_sheep)
 
     def die(self):
@@ -118,18 +122,17 @@ class Wolf(mesa.Agent):
     def eat(self):
         """When a wolf eats a sheep."""
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cellmates) > 1:
-            for agent in cellmates:
-                if isinstance(agent, Sheep) and not agent in self.model.died_agents:
-                    self.energy += self.model.config["wolf_gain_from_sheep"]
-                    logging.info(
-                        "[Wolf] Wolf agent with ID {} has eaten Sheep agent with ID {}.".format(
-                            self.unique_id, agent.unique_id
-                        )
+        for agent in cellmates:
+            if isinstance(agent, Sheep) and not agent in self.model.died_agents:
+                self.energy += self.model.config["wolf_gain_from_sheep"]
+                logging.info(
+                    "[Wolf] Wolf agent with ID {} has eaten Sheep agent with ID {}.".format(
+                        self.unique_id, agent.unique_id
                     )
-                    agent.eaten_by_wolf = True
-                    agent.die()
-                    break
+                )
+                agent.eaten_by_wolf = True
+                agent.die()
+                break
 
     def reproduce(self):
         """When wolves breed."""
@@ -158,7 +161,9 @@ class Patch(mesa.Agent):
 
     def __init__(self, unique_id, model, grass: bool):
         super().__init__(unique_id, model)
+        # the grass attribute is True if the current Patch agent has grass to offer sheeps
         self.grass = grass
+        # the count_no_grass attributes is used for grass regeneration
         self.count_no_grass = 0
 
     def step(self):
@@ -169,6 +174,63 @@ class Patch(mesa.Agent):
 
         if not self.grass:
             self.count_no_grass += 1
+
+
+class Shepherd(mesa.Agent):
+    """
+    Create a special agent (unique): the shepherd.
+    The shepherd has got 2 powers:
+        - he/she protects the sheeps surrounding him/her (Moore) from being eaten by wolves
+        - he/she has the ability to kill a wolf surrounding him/her
+    The Shepherd is a Random Walker on the grid.
+    """
+
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        logging.info(
+            "[Shepherd] Creating a shepherd agent with ID {}".format(unique_id)
+        )
+
+    def step(self):
+        """Generic step for the Shepherd agent."""
+        if not self in self.model.died_agents:
+            # this order matters: see the doc
+            self.move()
+            self.kill_wolf()
+
+    def move(self):
+        """When the shepherd moves on the grid."""
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        new_position = self.random.choice(possible_steps)
+        self.model.grid.move_agent(self, new_position)
+        self.protect_surrounding_sheeps()
+
+    def protect_surrounding_sheeps(self):
+        """Handle the protection of the shepherd on surrounding sheeps."""
+        # unprotect all Sheep agents
+        for agent in self.model.scheduler.agents:
+            if isinstance(agent, Sheep) and agent.protected_by_shepherd:
+                agent.protected_by_shepherd = False
+        cellmates = self.model.grid.get_cell_list_contents([self.pos])
+        for agent in cellmates:
+            if isinstance(agent, Sheep):
+                agent.protected_by_shepherd = True
+
+    def kill_wolf(self):
+        """When the shepherd tries to kill a surrounding wolf."""
+        cellmates = self.model.grid.get_cell_list_contents([self.pos])
+        for agent in cellmates:
+            if isinstance(agent, Wolf):
+                logging.info(
+                    "[Shepherd] Shepherd agent with ID {} has killed Wolf agent with ID {}.".format(
+                        self.unique_id, agent.unique_id
+                    )
+                )
+                agent.killed_by_shepherd = True
+                agent.die()
+                break
 
 
 class PreysPredatorsModel(mesa.Model):
@@ -188,6 +250,7 @@ class PreysPredatorsModel(mesa.Model):
         self.died_agents = []
         self.born_agents = []
         self.init_all_agents()
+        logging.info("[Model] Created a new Preys-Predators model successfully.")
 
     def init_all_agents(self):
         """Create the initial population."""
@@ -207,9 +270,9 @@ class PreysPredatorsModel(mesa.Model):
                 model=self,
             )
             self.scheduler.add(sheep)
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(sheep, (x, y))
+            sheep_x_coord = self.random.randrange(self.grid.width)
+            sheep_y_coord = self.random.randrange(self.grid.height)
+            self.grid.place_agent(sheep, (sheep_x_coord, sheep_y_coord))
         # Create and place the wolves
         for _ in range(self.config["init_nb_wolves"]):
             unique_id = uuid.uuid1()
@@ -219,9 +282,9 @@ class PreysPredatorsModel(mesa.Model):
                 model=self,
             )
             self.scheduler.add(wolf)
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(wolf, (x, y))
+            wolf_x_coord = self.random.randrange(self.grid.width)
+            wolf_y_coord = self.random.randrange(self.grid.height)
+            self.grid.place_agent(wolf, (wolf_x_coord, wolf_y_coord))
 
     def kill_agents(self):
         """Handle the death of agents."""
