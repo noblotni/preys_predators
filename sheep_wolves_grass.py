@@ -1,7 +1,9 @@
 """Implement a sheep, wolves and grass predation model."""
-import uuid
-import mesa
 import logging
+import mesa
+import uuid
+
+from custom_errors import UnsupportedMovingMethodError
 
 # pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation
 
@@ -11,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 class Sheep(mesa.Agent):
     """Handle sheep agents."""
 
-    def __init__(self, unique_id, model, energy):
+    def __init__(self, unique_id, model, energy, way_to_move: str = "random"):
         logging.info(
             "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
                 unique_id, energy
@@ -21,6 +23,8 @@ class Sheep(mesa.Agent):
         # note: unique_id and model attributes inherit from the Agent class
         self.energy = energy
         self.eaten_by_wolf = False
+        # controls the Sheep agent's way to move on the grid (Random Walker by default)
+        self.way_to_move = way_to_move
 
     def step(self):
         """Generic step for a sheep."""
@@ -37,8 +41,12 @@ class Sheep(mesa.Agent):
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
-        # pick a new position at random
-        new_position = self.random.choice(possible_steps)
+        if self.way_to_move == "random":
+            # pick a new position at random
+            new_position = self.random.choice(possible_steps)
+        else:
+            raise UnsupportedMovingMethodError
+
         self.model.grid.move_agent(self, new_position)
         # when a sheep moves, it looses an energy unit
         self.energy -= self.model.config["sheep_move_loss"]
@@ -92,7 +100,7 @@ class Sheep(mesa.Agent):
 class Wolf(mesa.Agent):
     """Handle wolves agents."""
 
-    def __init__(self, unique_id, model, energy):
+    def __init__(self, unique_id, model, energy, way_to_move: str = "random"):
         super().__init__(unique_id, model)
         self.energy = energy
         logging.info(
@@ -100,6 +108,7 @@ class Wolf(mesa.Agent):
                 unique_id, energy
             )
         )
+        self.way_to_move = way_to_move
 
     def step(self):
         """Generic step for wolf agents."""
@@ -115,7 +124,12 @@ class Wolf(mesa.Agent):
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
-        new_position = self.random.choice(possible_steps)
+        if self.way_to_move == "random":
+            # pick a new position at random
+            new_position = self.random.choice(possible_steps)
+        else:
+            raise UnsupportedMovingMethodError
+
         self.model.grid.move_agent(self, new_position)
         self.energy -= self.model.config["wolf_move_loss"]
 
