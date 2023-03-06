@@ -4,6 +4,7 @@ from threading import Thread
 from PIL import ImageTk, Image
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 from sheep_wolves_grass import PreysPredatorsModel, Sheep, Wolf, Patch
 import simulation_constants as cons
@@ -11,6 +12,8 @@ import simulation_config as config
 
 
 class SimulationApp:
+    """Application to simulate a prey-predator model."""
+
     def __init__(self):
         self.window = tk.Tk()
         self.window.geometry("1000x800")
@@ -59,31 +62,38 @@ class SimulationApp:
             population_matrix = self.compute_population_matrix()
             self.right_panel.update_grid_plot(population_matrix)
 
-    def compute_population_matrix(self):
+    def compute_population_matrix(self) -> np.ndarray:
+        """Compute the population of the grid.
+
+        The population is computed to be displayed it on the grid plot.
+
+        Returns:
+            population_matrix (np.ndarray): matrix of the grid population
+        """
         sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
         wolves_matrix = np.zeros_like(sheeps_matrix)
         grass_matrix = np.zeros_like(sheeps_matrix)
         population_matrix = np.zeros_like(sheeps_matrix)
         # Fill the population matrix
         for cell in self.model.grid.coord_iter():
-            cell_content, x, y = cell
+            cell_content, pos_x, pos_y = cell
             for agent in cell_content:
                 if isinstance(agent, Sheep):
-                    sheeps_matrix[x, y] += 1
+                    sheeps_matrix[pos_x, pos_y] += 1
                 elif isinstance(agent, Wolf):
-                    wolves_matrix[x, y] += 1
+                    wolves_matrix[pos_x, pos_y] += 1
                 elif isinstance(agent, Patch) and agent.grass:
-                    grass_matrix[x, y] += 1
-            if sheeps_matrix[x, y] and wolves_matrix[x, y]:
-                population_matrix[x, y] = cons.WOLF
-            elif sheeps_matrix[x, y] and not wolves_matrix[x, y]:
-                population_matrix[x, y] = cons.SHEEP
-            elif wolves_matrix[x, y]:
-                population_matrix[x, y] = cons.WOLF
-            elif grass_matrix[x, y]:
-                population_matrix[x, y] = cons.GREEN_PATCH
+                    grass_matrix[pos_x, pos_y] += 1
+            if sheeps_matrix[pos_x, pos_y] and wolves_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.WOLF
+            elif sheeps_matrix[pos_x, pos_y] and not wolves_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.SHEEP
+            elif wolves_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.WOLF
+            elif grass_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.GREEN_PATCH
             else:
-                population_matrix[x, y] = cons.BROWN_PATCH
+                population_matrix[pos_x, pos_y] = cons.BROWN_PATCH
         return population_matrix
 
     def run(self):
@@ -195,6 +205,7 @@ class ParametersFrame(tk.Frame):
         run_button.pack()
 
     def setup_model(self):
+        """Set the values of the model parameters."""
         self.app.model.running = False
         self.app.model_config["init_nb_sheeps"] = self.init_nb_sheeps.get()
         self.app.model_config["init_nb_wolves"] = self.init_nb_wolves.get()
@@ -211,9 +222,15 @@ class ParametersFrame(tk.Frame):
         self.app.model = PreysPredatorsModel(self.app.model_config)
 
     def stop_model(self):
+        """Stop the model."""
         self.app.model.running = False
 
     def run_model(self):
+        """Start the model.
+
+        The model runs in a different thread so that the
+        user can still change settings on the GUI.
+        """
         thread = Thread(target=self.app.run_model)
         thread.start()
 
@@ -228,17 +245,21 @@ class PlotsFrame(tk.Frame):
         self.create_widgets()
 
     def init_population_plot(self):
+        """Initialize the population plot (at the bottom right of the GUI)."""
         self.population_figure = plt.figure()
         self.pop_ax = self.population_figure.add_subplot()
         self.pop_ax.plot([], [], label="Number of sheeps", color="blue", linewidth=4)
         self.pop_ax.plot([], [], label="Number of wolves", color="red", linewidth=4)
         self.pop_ax.plot([], [], label="Grass / 4", color="green", linewidth=4)
+        self.pop_ax.set_xlabel("Time (Number of steps)")
+        self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()
         self.pop_ax.legend()
 
     def update_population_plot(
         self, time: list, nb_sheeps: list, nb_wolves: list, nb_grass_over_four: list
     ):
+        """Update the population plot with the latest data."""
         self.pop_ax.clear()
         self.pop_ax.plot(
             time, nb_sheeps, label="Number of sheeps", color="blue", linewidth=4
@@ -252,12 +273,16 @@ class PlotsFrame(tk.Frame):
             time, nb_grass_over_four, label="Grass /4", color="green", linewidth=4
         )
         self.pop_ax.fill_between(time, nb_grass_over_four, 0, color="green", alpha=0.3)
+        self.pop_ax.set_xlabel("Time (number of steps)")
+        self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()
         self.pop_ax.legend()
         self.canvas_populations.draw()
 
     def init_grid_plot(self):
+        """Initialize the grid plot."""
         self.grid_figure, self.gridfig_ax = plt.subplots(1)
+        # PLot an empty grid
         self.gridfig_ax.matshow(
             config.EMPTY_GRID,
             cmap=cons.GRID_PLOT_CMAP,
@@ -265,8 +290,17 @@ class PlotsFrame(tk.Frame):
         )
         self.gridfig_ax.set_title("Current state of the grid")
         self.gridfig_ax.axis("off")
+        cbar = self.grid_figure.colorbar(
+            mpl.cm.ScalarMappable(
+                cmap=cons.GRID_PLOT_CMAP, norm=cons.GRID_PLOT_CMAP_NORM
+            ),
+            ax=self.gridfig_ax,
+            ticks=cons.GRID_PLOT_CBAR_TICKS,
+        )
+        cbar.ax.set_yticklabels(["Empty", "Wolf", "Sheep", "Grass", "Dirt"])
 
     def update_grid_plot(self, population_matrix):
+        """Update the grid plot with the latest data."""
         self.gridfig_ax.clear()
         self.gridfig_ax.matshow(
             population_matrix, cmap=cons.GRID_PLOT_CMAP, norm=cons.GRID_PLOT_CMAP_NORM
