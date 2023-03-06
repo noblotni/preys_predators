@@ -143,7 +143,9 @@ class ParametersFrame(tk.Frame):
         )
         nb_wolves_scale.set(cons.DEFAULT_INIT_NB_WOLVES)
         nb_wolves_scale.pack(fill=tk.X)
-        grass_regrowth_label = tk.Label(master=self, text="Gras regrowth time (steps):")
+        grass_regrowth_label = tk.Label(
+            master=self, text="Grass regrowth time (steps):"
+        )
         grass_regrowth_label.pack()
         self.grass_regrowth_time = tk.IntVar()
         grass_regrowth_scale = tk.Scale(

@@ -16,7 +16,7 @@ DEFAULT_WOLF_REPRODUCTION_RATE = 5
 # Energy gained by a sheep from eating grass
 DEFAULT_SHEEP_GAIN_FROM_GRASS = 13
 # Energy gained by a wolf from eating a sheep
-DEFAULT_WOLF_GAIN_FROM_SHEEP = 16
+DEFAULT_WOLF_GAIN_FROM_SHEEP = 10
 # Number of steps without grass
 # on a patch if eaten by a sheep
 DEFAULT_GRASS_REGROWTH_TIME = 30
