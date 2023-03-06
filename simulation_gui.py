@@ -529,7 +529,10 @@ def create_model_default_config() -> dict:
     model_config["wolf_init_energy"] = config.WOLF_INIT_ENERGY
     model_config["sheep_move_loss"] = config.SHEEP_MOVE_LOSS
     model_config["wolf_move_loss"] = config.WOLF_MOVE_LOSS
-    model_config["add_sickness"] = cons.DEFAULT_ADD_SICKNESS
+    # add the sickness config.
+    model_config["add_sickness"] = config.ADD_SICKNESS
+    model_config["sickness_severity"] = config.SICKNESS_SEVERITY
+    model_config["proba_sickness_transmission"] = config.PROBA_SICKNESS_TRANSMISSION
     return model_config
 
 

@@ -18,3 +18,10 @@ WOLF_MOVE_LOSS = int(os.environ.get("WOLF_MOVE_LOSS", default=1))
 
 # GUI
 EMPTY_GRID = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+# SICKNESS
+# add a sickness that is able to propagate among Sheep agents
+ADD_SICKNESS = os.environ.get("ADD_SICKNESS", default=False)
+# control the probability to die when infected by the above sickness
+SICKNESS_SEVERITY = float(os.environ.get("SICKNESS_SEVERITY", default=0.1))
+# control the probability of being infected by the illness when sharing a cell with an infected agent
+PROBA_SICKNESS_TRANSMISSION = float(os.environ.get("SICKNESS_SEVERITY", default=0.05))

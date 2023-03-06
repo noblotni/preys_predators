@@ -13,7 +13,14 @@ logging.basicConfig(level=logging.INFO)
 class Sheep(mesa.Agent):
     """Handle sheep agents."""
 
-    def __init__(self, unique_id, model, energy, way_to_move: str = "random"):
+    def __init__(
+        self,
+        unique_id,
+        model,
+        energy,
+        way_to_move: str = "random",
+        is_sick: bool = False,
+    ):
         logging.info(
             "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
                 unique_id, energy
@@ -31,6 +38,8 @@ class Sheep(mesa.Agent):
         if not self in self.model.died_agents:
             # this order matters: see the doc
             self.move()
+            if self.model.config["add_sickness"]:
+                self.get_sickness()
             # note: die() method does not mean the current agent will die at this step
             self.die()
             self.eat()
@@ -95,6 +104,32 @@ class Sheep(mesa.Agent):
             logging.info(
                 "[Sheep] Sheep agent with ID {} has died.".format(self.unique_id)
             )
+        if not self in self.model.died_agents and self.is_sick:
+            dies_from_sickness = (1 - self.random.random()) > self.model.config[
+                "sickness_severity"
+            ]
+            if dies_from_sickness:
+                self.model.died_agents.append(self)
+                logging.info(
+                    "[Sheep] Sheep agent with ID {} has died from sickness.".format(
+                        self.unique_id
+                    )
+                )
+
+    def get_sickness(self):
+        """Method used to determine if the agent gets infected by sickness at this"""
+        if not self.is_sick:
+            number_surrounding_agents_infected = 0
+            cellmates = self.model.grid.get_cell_list_contents([self.pos])
+            for agent in cellmates:
+                if isinstance(agent, Sheep) and agent.is_sick:
+                    number_surrounding_agents_infected += 1
+        get_sickness = (
+            self.random.random()
+            > number_surrounding_agents_infected
+            * self.model.config["proba_sickness_transmission"]
+        )
+        self.is_sick = get_sickness
 
 
 class Wolf(mesa.Agent):
