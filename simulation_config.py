@@ -31,3 +31,6 @@ PROBA_SICKNESS_TRANSMISSION = float(
 SHEEP_SANITY_PROBA = float(os.environ.get("SHEEP_SANITY_PROBA", default=0.50))
 # control the probability for infected sheeps to recover from illness at each step
 SHEEP_CURE_PROBA = float(os.environ.get("SHEEP_CURE_PROBA", default=0.20))
+
+# GUI
+EMPTY_GRID = np.zeros((GRID_WIDTH, GRID_HEIGHT))

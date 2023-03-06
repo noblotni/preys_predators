@@ -95,8 +95,8 @@ class SimulationApp:
                 nb_grass_over_four=nb_grass_over_four,
                 nb_sheep_sick=nb_sheep_sick,
             )
-            sheeps_matrix, wolves_matrix = self.compute_population_matrices()
-            self.right_panel.update_grid_plot(sheeps_matrix, wolves_matrix)
+            population_matrix = self.compute_population_matrix()
+            self.right_panel.update_grid_plot(population_matrix)
 
         The population is computed to be displayed it on the grid plot.
 
