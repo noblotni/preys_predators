@@ -111,12 +111,14 @@ class ParametersFrame(tk.Frame):
 
     def create_widgets(self):
         """Create all the widgets on the parameters frame."""
+        # Canva to display an image
         self.canvas_sheep = tk.Canvas(master=self, bg="black", highlightthickness=0)
         self.canvas_sheep.pack(fill=tk.BOTH, expand=True)
         self.img = Image.open(cons.ASCII_SHEEPS_PATH)
         # Resize image to fit the canvas (To Do)
         self.img = ImageTk.PhotoImage(self.img)
         self.canvas_sheep.create_image(80, 80, anchor=tk.NW, image=self.img)
+        # Parameters scales
         label_sheeps = tk.Label(master=self, text="Initial number of sheeps: ")
         label_sheeps.pack()
         self.init_nb_sheeps = tk.IntVar()
@@ -141,6 +143,18 @@ class ParametersFrame(tk.Frame):
         )
         nb_wolves_scale.set(cons.DEFAULT_INIT_NB_WOLVES)
         nb_wolves_scale.pack(fill=tk.X)
+        grass_regrowth_label = tk.Label(master=self, text="Gras regrowth time (steps):")
+        grass_regrowth_label.pack()
+        self.grass_regrowth_time = tk.IntVar()
+        grass_regrowth_scale = tk.Scale(
+            master=self,
+            from_=cons.MIN_GRASS_REGROWTH_TIME,
+            to_=cons.MAX_GRASS_REGROWTH_TIME,
+            variable=self.grass_regrowth_time,
+            orient=tk.HORIZONTAL,
+        )
+        grass_regrowth_scale.set(cons.DEFAULT_GRASS_REGROWTH_TIME)
+        grass_regrowth_scale.pack(fill=tk.X)
         label_sheeps_reproduction = tk.Label(
             master=self, text="Sheeps' reproduction rate (%):"
         )
@@ -209,6 +223,7 @@ class ParametersFrame(tk.Frame):
         self.app.model.running = False
         self.app.model_config["init_nb_sheeps"] = self.init_nb_sheeps.get()
         self.app.model_config["init_nb_wolves"] = self.init_nb_wolves.get()
+        self.app.model_config["grass_regrowth_time"] = self.grass_regrowth_time
         self.app.model_config["sheep_reproduction_rate"] = (
             self.sheep_reproduction_rate.get() * cons.PERCENT_TO_PROBA
         )
@@ -344,7 +359,7 @@ def create_model_default_config() -> dict:
     model_config = {}
     model_config["init_nb_sheeps"] = cons.DEFAULT_INIT_NB_SHEEPS
     model_config["init_nb_wolves"] = cons.DEFAULT_INIT_NB_WOLVES
-    model_config["grass_regrowth_time"] = config.GRASS_REGROWTH_TIME
+    model_config["grass_regrowth_time"] = cons.DEFAULT_GRASS_REGROWTH_TIME
     model_config["grid_width"] = config.GRID_WIDTH
     model_config["grid_height"] = config.GRID_HEIGHT
     model_config["sheep_reproduction_rate"] = (

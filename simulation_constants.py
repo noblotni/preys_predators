@@ -6,17 +6,20 @@ PERCENT_TO_PROBA = 1 / 100
 
 # Default constants
 # Number of sheeps at the first step
-DEFAULT_INIT_NB_SHEEPS = 10
+DEFAULT_INIT_NB_SHEEPS = 100
 # Number of wolves at the first step
-DEFAULT_INIT_NB_WOLVES = 10
+DEFAULT_INIT_NB_WOLVES = 50
 # Sheep reproduction rate (%)
 DEFAULT_SHEEP_REPRODUCTION_RATE = 4
 # Wolf reproduction rate (%)
 DEFAULT_WOLF_REPRODUCTION_RATE = 5
 # Energy gained by a sheep from eating grass
-DEFAULT_SHEEP_GAIN_FROM_GRASS = 10
+DEFAULT_SHEEP_GAIN_FROM_GRASS = 13
 # Energy gained by a wolf from eating a sheep
-DEFAULT_WOLF_GAIN_FROM_SHEEP = 20
+DEFAULT_WOLF_GAIN_FROM_SHEEP = 16
+# Number of steps without grass
+# on a patch if eaten by a sheep
+DEFAULT_GRASS_REGROWTH_TIME = 30
 
 # GUI
 # Bounds of the parameters which
@@ -25,6 +28,8 @@ MIN_INIT_NB_SHEEPS = 1
 MAX_INIT_NB_SHEEPS = 200
 MIN_INIT_NB_WOLVES = 1
 MAX_INIT_NB_WOLVES = 200
+MIN_GRASS_REGROWTH_TIME = 1
+MAX_GRASS_REGROWTH_TIME = 100
 MIN_SHEEP_GAIN_FROM_GRASS = 1
 MAX_SHEEP_GAIN_FROM_GRASS = 50
 MIN_WOLF_GAIN_FROM_SHEEP = 1
