@@ -533,6 +533,8 @@ def create_model_default_config() -> dict:
     model_config["add_sickness"] = config.ADD_SICKNESS
     model_config["sickness_severity"] = config.SICKNESS_SEVERITY
     model_config["proba_sickness_transmission"] = config.PROBA_SICKNESS_TRANSMISSION
+    model_config["sheep_sanity_proba"] = config.SHEEP_SANITY_PROBA
+    model_config["sheep_cure_proba"] = config.SHEEP_CURE_PROBA
     return model_config
 
 

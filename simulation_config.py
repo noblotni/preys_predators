@@ -25,3 +25,7 @@ ADD_SICKNESS = os.environ.get("ADD_SICKNESS", default=False)
 SICKNESS_SEVERITY = float(os.environ.get("SICKNESS_SEVERITY", default=0.1))
 # control the probability of being infected by the illness when sharing a cell with an infected agent
 PROBA_SICKNESS_TRANSMISSION = float(os.environ.get("SICKNESS_SEVERITY", default=0.05))
+# control the probability of popping sane for sheeps (as opposed to popping already infected)
+SHEEP_SANITY_PROBA = float(os.environ.get("SHEEP_SANITY_PROBA", default=0.8))
+# control the probability for infected sheeps to recover from illness at each step
+SHEEP_CURE_PROBA = float(os.environ.get("SHEEP_CURE_PROBA", default=0.8))

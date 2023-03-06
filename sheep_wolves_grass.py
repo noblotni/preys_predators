@@ -19,7 +19,6 @@ class Sheep(mesa.Agent):
         model,
         energy,
         way_to_move: str = "random",
-        is_sick: bool = False,
     ):
         logging.info(
             "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
@@ -32,6 +31,7 @@ class Sheep(mesa.Agent):
         self.eaten_by_wolf = False
         # controls the Sheep agent's way to move on the grid (Random Walker by default)
         self.way_to_move = way_to_move
+        self.is_sick = (self.random.random() > self.model.config["sheep_sanity_proba"])
 
     def step(self):
         """Generic step for a sheep."""
@@ -39,7 +39,7 @@ class Sheep(mesa.Agent):
             # this order matters: see the doc
             self.move()
             if self.model.config["add_sickness"]:
-                self.get_sickness()
+                self.update_sickness()
             # note: die() method does not mean the current agent will die at this step
             self.die()
             self.eat()
@@ -116,8 +116,12 @@ class Sheep(mesa.Agent):
                     )
                 )
 
-    def get_sickness(self):
-        """Method used to determine if the agent gets infected by sickness at this"""
+    def update_sickness(self):
+        """Method used to determine if the agent gets infected by sickness at this step."""
+        if self.is_sick:
+            heal_from_sickness = ((1 - self.random.random()) > self.model.config["sheep_cure_proba"])
+            if heal_from_sickness:
+                self.is_sick = False
         if not self.is_sick:
             number_surrounding_agents_infected = 0
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
@@ -233,6 +237,12 @@ class Shepherd(mesa.Agent):
         - he/she has the ability to kill a wolf surrounding him/her
     The Shepherd is a Random Walker on the grid.
     """
+
+    #
+    #
+    # Not used thereafter.
+    #
+    #
 
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
