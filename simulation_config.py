@@ -1,5 +1,6 @@
 """Handle the simulation configuration."""
 import os
+import numpy as np
 
 GRID_WIDTH = int(os.environ.get("GRID_WIDTH", default=40))
 GRID_HEIGHT = int(os.environ.get("GRID_HEIGHT", default=65))
@@ -16,3 +17,7 @@ SHEEP_MOVE_LOSS = int(os.environ.get("SHEEP_MOVE_LOSS", default=1))
 # Energy lost by a wolf when moving
 # from a case to another
 WOLF_MOVE_LOSS = int(os.environ.get("WOLF_MOVE_LOSS", default=1))
+
+
+# GUI
+EMPTY_GRID = np.zeros((GRID_WIDTH, GRID_HEIGHT))

@@ -1,5 +1,6 @@
 """Contain simulation constants."""
 from pathlib import Path
+import matplotlib as mpl
 
 PERCENT_TO_PROBA = 1 / 100
 
@@ -17,7 +18,9 @@ DEFAULT_SHEEP_GAIN_FROM_GRASS = 10
 # Energy gained by a wolf from eating a sheep
 DEFAULT_WOLF_GAIN_FROM_SHEEP = 20
 
-# Bounds
+# GUI
+# Bounds of the parameters which
+# can be set in the GUI
 MIN_INIT_NB_SHEEPS = 1
 MAX_INIT_NB_SHEEPS = 200
 MIN_INIT_NB_WOLVES = 1
@@ -35,5 +38,32 @@ MIN_WOLF_REPRODUCTION_RATE = 1
 # Maximal value of the wolves' reproduction rate (%)
 MAX_WOLF_REPRODUCTION_RATE = 20
 
-# Image
+# Sheeps image for the GUI
 ASCII_SHEEPS_PATH = Path("./assets/ascii_sheeps.png")
+
+
+# Constants for the colors of the pixels on the grid plot
+EMPTY_CASE = 0
+WOLF = 1
+SHEEP = 2
+GREEN_PATCH = 3
+BROWN_PATCH = 4
+EMPTY_CASE_COLOR = "black"
+WOLF_COLOR = "pink"
+SHEEP_COLOR = "white"
+GREEN_PATCH_COLOR = "green"
+BROWN_PATCH_COLOR = "brown"
+GRID_PLOT_CMAP = mpl.colors.ListedColormap(
+    [EMPTY_CASE_COLOR, WOLF_COLOR, SHEEP_COLOR, GREEN_PATCH_COLOR, BROWN_PATCH_COLOR]
+)
+GRID_PLOT_CMAP_BOUNDS = [
+    EMPTY_CASE - 0.5,
+    EMPTY_CASE + 0.5,
+    WOLF + 0.5,
+    SHEEP + 0.5,
+    GREEN_PATCH + 0.5,
+    BROWN_PATCH + 0.5,
+]
+GRID_PLOT_CMAP_NORM = mpl.colors.BoundaryNorm(
+    boundaries=GRID_PLOT_CMAP_BOUNDS, ncolors=GRID_PLOT_CMAP.N
+)
