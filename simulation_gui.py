@@ -86,23 +86,8 @@ class SimulationApp:
             time.sleep((1 - self.left_panel.model_speed.get() * cons.PERCENT_TO_PROBA))
 
     def compute_population_matrix(self) -> np.ndarray:
-        """Compute the population of the grid.
-            nb_sheep_sick = [pop[3] for pop in population]
-            self.right_panel.update_population_plot(
-                time=time,
-                nb_sheeps=nb_sheeps,
-                nb_wolves=nb_wolves,
-                nb_grass_over_four=nb_grass_over_four,
-                nb_sheep_sick=nb_sheep_sick,
-            )
-            population_matrix = self.compute_population_matrix()
-            self.right_panel.update_grid_plot(population_matrix)
-
-        The population is computed to be displayed it on the grid plot.
-
-        Returns:
-            population_matrix (np.ndarray): matrix of the grid population
-        """
+        """Compute the population of the grid."""
+            
         healthy_sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
         sick_sheeps_matrix = np.zeros_like(healthy_sheeps_matrix)
         wolves_matrix = np.zeros_like(healthy_sheeps_matrix)
@@ -451,6 +436,7 @@ class PlotsFrame(tk.Frame):
             self.pop_ax.fill_between(
                 time_list, nb_sheeps_sick, 0, color="black", alpha=0.3
             )
+        self.pop_ax.fill_between(time, nb_grass_over_four, 0, color="green", alpha=0.3)
         self.pop_ax.set_xlabel("Time (number of steps)")
         self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()

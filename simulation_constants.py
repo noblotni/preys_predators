@@ -112,6 +112,7 @@ GRID_PLOT_CMAP_NORM = mpl.colors.BoundaryNorm(
     boundaries=GRID_PLOT_CMAP_BOUNDS, ncolors=GRID_PLOT_CMAP.N
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 GRID_PLOT_CBAR_TICKS = [
     EMPTY_CASE,
     WOLF,
@@ -122,3 +123,6 @@ GRID_PLOT_CBAR_TICKS = [
 ]
 =======
 >>>>>>> 2034002 (Improve grid plot.)
+=======
+GRID_PLOT_CBAR_TICKS = [EMPTY_CASE, WOLF, SHEEP, GREEN_PATCH, BROWN_PATCH]
+>>>>>>> ec59ebb (Improve comments and add colorbar.)
