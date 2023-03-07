@@ -1,20 +1,16 @@
 """GUI to run the simulation."""
+import numpy as np
 import tkinter as tk
-from tkinter import messagebox
-from threading import Thread
 from PIL import ImageTk, Image
+from threading import Thread
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import numpy as np
-from sheep_wolves_grass import PreysPredatorsModel, Sheep, Wolf, Patch
+from sheep_wolves_grass import PreysPredatorsModel, Sheep, Wolf
 import simulation_constants as cons
 import simulation_config as config
 
 
 class SimulationApp:
-    """Application to simulate a prey-predator model."""
-
     def __init__(self):
         self.window = tk.Tk()
         self.window.geometry("1000x800")
@@ -22,15 +18,8 @@ class SimulationApp:
         self.model_config = create_model_default_config()
         self.model = PreysPredatorsModel(config=self.model_config)
         self.create_widgets()
-        self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
-
-    def on_exit(self):
-        """When you click to exit, this function is called"""
-        if messagebox.askyesno("Exit", "Do you want to quit the application?"):
-            self.window.quit()
 
     def create_widgets(self):
-        """Create the widgets of the whole application."""
         self.right_panel = PlotsFrame(
             master=self.window,
             width=3 * self.window.winfo_width() // 4,
@@ -48,7 +37,6 @@ class SimulationApp:
         self.left_panel.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT)
 
     def run_model(self):
-        """Run the prey-predator model."""
         count = 1
         self.model.running = True
         while self.model.running:
@@ -66,66 +54,38 @@ class SimulationApp:
                 nb_wolves=nb_wolves,
                 nb_grass_over_four=nb_grass_over_four,
             )
-            population_matrix = self.compute_population_matrix()
-            self.right_panel.update_grid_plot(population_matrix)
+            sheeps_matrix, wolves_matrix = self.compute_population_matrices()
+            self.right_panel.update_grid_plot(sheeps_matrix, wolves_matrix)
 
-    def compute_population_matrix(self) -> np.ndarray:
-        """Compute the population of the grid.
-
-        The population is computed to be displayed it on the grid plot.
-
-        Returns:
-            population_matrix (np.ndarray): matrix of the grid population
-        """
+    def compute_population_matrices(self):
         sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
-        wolves_matrix = np.zeros_like(sheeps_matrix)
-        grass_matrix = np.zeros_like(sheeps_matrix)
-        population_matrix = np.zeros_like(sheeps_matrix)
-        # Fill the population matrix
+        wolves_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
         for cell in self.model.grid.coord_iter():
-            cell_content, pos_x, pos_y = cell
+            cell_content, x, y = cell
             for agent in cell_content:
                 if isinstance(agent, Sheep):
-                    sheeps_matrix[pos_x, pos_y] += 1
+                    sheeps_matrix[x, y] += 1
                 elif isinstance(agent, Wolf):
-                    wolves_matrix[pos_x, pos_y] += 1
-                elif isinstance(agent, Patch) and agent.grass:
-                    grass_matrix[pos_x, pos_y] += 1
-            if sheeps_matrix[pos_x, pos_y] and wolves_matrix[pos_x, pos_y]:
-                population_matrix[pos_x, pos_y] = cons.WOLF
-            elif sheeps_matrix[pos_x, pos_y] and not wolves_matrix[pos_x, pos_y]:
-                population_matrix[pos_x, pos_y] = cons.SHEEP
-            elif wolves_matrix[pos_x, pos_y]:
-                population_matrix[pos_x, pos_y] = cons.WOLF
-            elif grass_matrix[pos_x, pos_y]:
-                population_matrix[pos_x, pos_y] = cons.GREEN_PATCH
-            else:
-                population_matrix[pos_x, pos_y] = cons.BROWN_PATCH
-        return population_matrix
+                    wolves_matrix[x, y] += 1
+        return sheeps_matrix, wolves_matrix
 
     def run(self):
-        """Run the simulation application."""
         self.window.mainloop()
 
 
 class ParametersFrame(tk.Frame):
-    """Frame to set the parameters of the model."""
-
     def __init__(self, master, width, height, bg, app: SimulationApp):
         super().__init__(master=master, width=width, height=height, bg=bg)
         self.app = app
         self.create_widgets()
 
     def create_widgets(self):
-        """Create all the widgets on the parameters frame."""
-        # Canva to display an image
         self.canvas_sheep = tk.Canvas(master=self, bg="black", highlightthickness=0)
         self.canvas_sheep.pack(fill=tk.BOTH, expand=True)
         self.img = Image.open(cons.ASCII_SHEEPS_PATH)
         # Resize image to fit the canvas (To Do)
         self.img = ImageTk.PhotoImage(self.img)
         self.canvas_sheep.create_image(80, 80, anchor=tk.NW, image=self.img)
-        # Parameters scales
         label_sheeps = tk.Label(master=self, text="Initial number of sheeps: ")
         label_sheeps.pack()
         self.init_nb_sheeps = tk.IntVar()
@@ -150,20 +110,6 @@ class ParametersFrame(tk.Frame):
         )
         nb_wolves_scale.set(cons.DEFAULT_INIT_NB_WOLVES)
         nb_wolves_scale.pack(fill=tk.X)
-        grass_regrowth_label = tk.Label(
-            master=self, text="Grass regrowth time (steps):"
-        )
-        grass_regrowth_label.pack()
-        self.grass_regrowth_time = tk.IntVar()
-        grass_regrowth_scale = tk.Scale(
-            master=self,
-            from_=cons.MIN_GRASS_REGROWTH_TIME,
-            to_=cons.MAX_GRASS_REGROWTH_TIME,
-            variable=self.grass_regrowth_time,
-            orient=tk.HORIZONTAL,
-        )
-        grass_regrowth_scale.set(cons.DEFAULT_GRASS_REGROWTH_TIME)
-        grass_regrowth_scale.pack(fill=tk.X)
         label_sheeps_reproduction = tk.Label(
             master=self, text="Sheeps' reproduction rate (%):"
         )
@@ -220,38 +166,17 @@ class ParametersFrame(tk.Frame):
         )
         wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
         wolves_energy_gain_scale.pack(fill=tk.X)
-        self.sheep_add_sickness = tk.IntVar()
-        add_sickness_checkbox = tk.Checkbutton(
-            master=self,
-            text="Add a sickness among the sheeps",
-            variable=self.sheep_add_sickness,
-        )
-        if cons.DEFAULT_ADD_SICKNESS:
-            add_sickness_checkbox.select()
-        add_sickness_checkbox.pack(fill=tk.X)
-        self.create_control_buttons()
-
-    def create_control_buttons(self):
-        """Create all the control buttons of the parameters frame."""
-        button_frame = tk.Frame(master=self, bg="black")
-        button_frame.pack(pady=10, padx=10)
-        setup_button = tk.Button(
-            master=button_frame, text="Set up", command=self.setup_model
-        )
-        setup_button.pack(side=tk.LEFT, padx=10)
-        stop_button = tk.Button(
-            master=button_frame, text="Stop", command=self.stop_model
-        )
-        stop_button.pack(side=tk.LEFT, padx=10)
-        run_button = tk.Button(master=button_frame, text="Run", command=self.run_model)
-        run_button.pack(side=tk.LEFT, padx=10)
+        setup_button = tk.Button(master=self, text="Set up", command=self.setup_model)
+        setup_button.pack()
+        stop_button = tk.Button(master=self, text="Stop", command=self.stop_model)
+        stop_button.pack()
+        run_button = tk.Button(master=self, text="Run", command=self.run_model)
+        run_button.pack()
 
     def setup_model(self):
-        """Set the values of the model parameters."""
         self.app.model.running = False
         self.app.model_config["init_nb_sheeps"] = self.init_nb_sheeps.get()
         self.app.model_config["init_nb_wolves"] = self.init_nb_wolves.get()
-        self.app.model_config["grass_regrowth_time"] = self.grass_regrowth_time.get()
         self.app.model_config["sheep_reproduction_rate"] = (
             self.sheep_reproduction_rate.get() * cons.PERCENT_TO_PROBA
         )
@@ -262,26 +187,17 @@ class ParametersFrame(tk.Frame):
             "sheep_gain_from_grass"
         ] = self.sheep_gain_from_grass.get()
         self.app.model_config["wolf_gain_from_sheep"] = self.wolf_gain_from_sheep.get()
-        self.app.model_config["add_sickness"] = self.sheep_add_sickness.get() > 0
         self.app.model = PreysPredatorsModel(self.app.model_config)
 
     def stop_model(self):
-        """Stop the model."""
         self.app.model.running = False
 
     def run_model(self):
-        """Start the model.
-
-        The model runs in a different thread so that the
-        user can still change settings on the GUI.
-        """
         thread = Thread(target=self.app.run_model)
         thread.start()
 
 
 class PlotsFrame(tk.Frame):
-    """Frame where to put plots."""
-
     def __init__(self, master, width, height, bg):
         super().__init__(master=master, width=width, height=height, bg=bg)
         self.init_grid_plot()
@@ -289,72 +205,46 @@ class PlotsFrame(tk.Frame):
         self.create_widgets()
 
     def init_population_plot(self):
-        """Initialize the population plot (at the bottom right of the GUI)."""
         self.population_figure = plt.figure()
         self.pop_ax = self.population_figure.add_subplot()
-        self.pop_ax.plot([], [], label="Number of sheeps", color="blue", linewidth=4)
-        self.pop_ax.plot([], [], label="Number of wolves", color="red", linewidth=4)
-        self.pop_ax.plot([], [], label="Grass / 4", color="green", linewidth=4)
-        self.pop_ax.set_xlabel("Time (Number of steps)")
-        self.pop_ax.set_ylabel("Population")
+        self.pop_ax.plot([], [], label="Number of sheeps", color="blue")
+        self.pop_ax.plot([], [], label="Number of wolves", color="red")
+        self.pop_ax.plot([], [], label="Grass / 4", color="green")
         self.pop_ax.grid()
         self.pop_ax.legend()
 
     def update_population_plot(
         self, time: list, nb_sheeps: list, nb_wolves: list, nb_grass_over_four: list
     ):
-        """Update the population plot with the latest data."""
         self.pop_ax.clear()
-        self.pop_ax.plot(
-            time, nb_sheeps, label="Number of sheeps", color="blue", linewidth=4
-        )
-        self.pop_ax.fill_between(time, nb_sheeps, 0, color="blue", alpha=0.3)
-        self.pop_ax.plot(
-            time, nb_wolves, label="Number of wolves", color="red", linewidth=4
-        )
-        self.pop_ax.fill_between(time, nb_wolves, 0, color="red", alpha=0.3)
-        self.pop_ax.plot(
-            time, nb_grass_over_four, label="Grass /4", color="green", linewidth=4
-        )
-        self.pop_ax.fill_between(time, nb_grass_over_four, 0, color="green", alpha=0.3)
-        self.pop_ax.set_xlabel("Time (number of steps)")
-        self.pop_ax.set_ylabel("Population")
+        self.pop_ax.plot(time, nb_sheeps, label="Number of sheeps", color="blue")
+        self.pop_ax.plot(time, nb_wolves, label="Number of wolves", color="red")
+        self.pop_ax.plot(time, nb_grass_over_four, label="Grass /4", color="green")
         self.pop_ax.grid()
         self.pop_ax.legend()
         self.canvas_populations.draw()
 
     def init_grid_plot(self):
-        """Initialize the grid plot."""
-        self.grid_figure, self.gridfig_ax = plt.subplots(1)
-        # PLot an empty grid
-        self.gridfig_ax.matshow(
-            config.EMPTY_GRID,
-            cmap=cons.GRID_PLOT_CMAP,
-            norm=cons.GRID_PLOT_CMAP_NORM,
-        )
-        self.gridfig_ax.set_title("Current state of the grid")
-        self.gridfig_ax.axis("off")
-        cbar = self.grid_figure.colorbar(
-            mpl.cm.ScalarMappable(
-                cmap=cons.GRID_PLOT_CMAP, norm=cons.GRID_PLOT_CMAP_NORM
-            ),
-            ax=self.gridfig_ax,
-            ticks=cons.GRID_PLOT_CBAR_TICKS,
-        )
-        cbar.ax.set_yticklabels(["Empty", "Wolf", "Sheep", "Grass", "Dirt"])
+        self.grid_figure, self.gridfig_axs = plt.subplots(1, 2)
+        self.gridfig_axs[0].matshow(np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT)))
+        self.gridfig_axs[0].set_title("Sheeps on the grid")
+        self.gridfig_axs[1].matshow(np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT)))
+        self.gridfig_axs[1].set_title("Wolves on the grid")
+        self.gridfig_axs[0].axis("off")
+        self.gridfig_axs[1].axis("off")
 
-    def update_grid_plot(self, population_matrix):
-        """Update the grid plot with the latest data."""
-        self.gridfig_ax.clear()
-        self.gridfig_ax.matshow(
-            population_matrix, cmap=cons.GRID_PLOT_CMAP, norm=cons.GRID_PLOT_CMAP_NORM
-        )
-        self.gridfig_ax.set_title("Current state of the grid")
-        self.gridfig_ax.axis("off")
+    def update_grid_plot(self, sheeps_matrix, wolves_matrix):
+        self.gridfig_axs[0].clear()
+        self.gridfig_axs[1].clear()
+        self.gridfig_axs[0].matshow(sheeps_matrix)
+        self.gridfig_axs[0].set_title("Sheeps on the grid")
+        self.gridfig_axs[1].matshow(wolves_matrix)
+        self.gridfig_axs[1].set_title("Wolves on the grid")
+        self.gridfig_axs[0].axis("off")
+        self.gridfig_axs[1].axis("off")
         self.canvas_grid.draw()
 
     def create_widgets(self):
-        """Create the widgets on the plot panel."""
         # Create frames
         frame_up = tk.Frame(master=self, height=self.winfo_height() // 2)
         frame_down = tk.Frame(master=self, height=self.winfo_height() // 2)
@@ -378,17 +268,11 @@ class PlotsFrame(tk.Frame):
         self.canvas_populations.get_tk_widget().pack(expand=True, fill=tk.BOTH)
 
 
-def create_model_default_config() -> dict:
-    """Create the default configuration of the model.
-
-    Returns:
-        model_config (dict): a dictionary containing all the default values of
-            the model parameters.
-    """
+def create_model_default_config():
     model_config = {}
     model_config["init_nb_sheeps"] = cons.DEFAULT_INIT_NB_SHEEPS
     model_config["init_nb_wolves"] = cons.DEFAULT_INIT_NB_WOLVES
-    model_config["grass_regrowth_time"] = cons.DEFAULT_GRASS_REGROWTH_TIME
+    model_config["grass_regrowth_time"] = config.GRASS_REGROWTH_TIME
     model_config["grid_width"] = config.GRID_WIDTH
     model_config["grid_height"] = config.GRID_HEIGHT
     model_config["sheep_reproduction_rate"] = (
@@ -403,12 +287,10 @@ def create_model_default_config() -> dict:
     model_config["wolf_init_energy"] = config.WOLF_INIT_ENERGY
     model_config["sheep_move_loss"] = config.SHEEP_MOVE_LOSS
     model_config["wolf_move_loss"] = config.WOLF_MOVE_LOSS
-    model_config["add_sickness"] = cons.DEFAULT_ADD_SICKNESS
     return model_config
 
 
 def main():
-    """Entry point of the simulation program."""
     app = SimulationApp()
     app.run()
 
