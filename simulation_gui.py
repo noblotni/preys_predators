@@ -1,5 +1,6 @@
 """GUI to run the simulation."""
 import tkinter as tk
+from tkinter import messagebox
 from threading import Thread
 from PIL import ImageTk, Image
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -21,6 +22,12 @@ class SimulationApp:
         self.model_config = create_model_default_config()
         self.model = PreysPredatorsModel(config=self.model_config)
         self.create_widgets()
+        self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
+
+    def on_exit(self):
+        """When you click to exit, this function is called"""
+        if messagebox.askyesno("Exit", "Do you want to quit the application?"):
+            self.window.quit()
 
     def create_widgets(self):
         """Create the widgets of the whole application."""
@@ -213,19 +220,29 @@ class ParametersFrame(tk.Frame):
         )
         wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
         wolves_energy_gain_scale.pack(fill=tk.X)
-        setup_button = tk.Button(master=self, text="Set up", command=self.setup_model)
-        setup_button.pack()
-        stop_button = tk.Button(master=self, text="Stop", command=self.stop_model)
-        stop_button.pack()
-        run_button = tk.Button(master=self, text="Run", command=self.run_model)
-        run_button.pack()
+        self.create_buttons()
+
+    def create_buttons(self):
+        """Create all the buttons of the parameters frame."""
+        button_frame = tk.Frame(master=self, bg="black")
+        button_frame.pack(pady=10, padx=10)
+        setup_button = tk.Button(
+            master=button_frame, text="Set up", command=self.setup_model
+        )
+        setup_button.pack(side=tk.LEFT, padx=10)
+        stop_button = tk.Button(
+            master=button_frame, text="Stop", command=self.stop_model
+        )
+        stop_button.pack(side=tk.LEFT, padx=10)
+        run_button = tk.Button(master=button_frame, text="Run", command=self.run_model)
+        run_button.pack(side=tk.LEFT, padx=10)
 
     def setup_model(self):
         """Set the values of the model parameters."""
         self.app.model.running = False
         self.app.model_config["init_nb_sheeps"] = self.init_nb_sheeps.get()
         self.app.model_config["init_nb_wolves"] = self.init_nb_wolves.get()
-        self.app.model_config["grass_regrowth_time"] = self.grass_regrowth_time
+        self.app.model_config["grass_regrowth_time"] = self.grass_regrowth_time.get()
         self.app.model_config["sheep_reproduction_rate"] = (
             self.sheep_reproduction_rate.get() * cons.PERCENT_TO_PROBA
         )
