@@ -20,6 +20,8 @@ DEFAULT_WOLF_GAIN_FROM_SHEEP = 10
 # Number of steps without grass
 # on a patch if eaten by a sheep
 DEFAULT_GRASS_REGROWTH_TIME = 30
+# Boolean to add a sickness among the sheeps
+DEFAULT_ADD_SICKNESS = False
 
 # GUI
 # Bounds of the parameters which
