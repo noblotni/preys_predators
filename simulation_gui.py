@@ -220,10 +220,19 @@ class ParametersFrame(tk.Frame):
         )
         wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
         wolves_energy_gain_scale.pack(fill=tk.X)
-        self.create_buttons()
+        self.sheep_add_sickness = tk.IntVar()
+        add_sickness_checkbox = tk.Checkbutton(
+            master=self,
+            text="Add a sickness among the sheeps",
+            variable=self.sheep_add_sickness,
+        )
+        if cons.DEFAULT_ADD_SICKNESS:
+            add_sickness_checkbox.select()
+        add_sickness_checkbox.pack(fill=tk.X)
+        self.create_control_buttons()
 
-    def create_buttons(self):
-        """Create all the buttons of the parameters frame."""
+    def create_control_buttons(self):
+        """Create all the control buttons of the parameters frame."""
         button_frame = tk.Frame(master=self, bg="black")
         button_frame.pack(pady=10, padx=10)
         setup_button = tk.Button(
@@ -253,6 +262,7 @@ class ParametersFrame(tk.Frame):
             "sheep_gain_from_grass"
         ] = self.sheep_gain_from_grass.get()
         self.app.model_config["wolf_gain_from_sheep"] = self.wolf_gain_from_sheep.get()
+        self.app.model_config["add_sickness"] = self.sheep_add_sickness.get() > 0
         self.app.model = PreysPredatorsModel(self.app.model_config)
 
     def stop_model(self):
@@ -393,6 +403,7 @@ def create_model_default_config() -> dict:
     model_config["wolf_init_energy"] = config.WOLF_INIT_ENERGY
     model_config["sheep_move_loss"] = config.SHEEP_MOVE_LOSS
     model_config["wolf_move_loss"] = config.WOLF_MOVE_LOSS
+    model_config["add_sickness"] = cons.DEFAULT_ADD_SICKNESS
     return model_config
 
 
