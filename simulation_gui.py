@@ -326,6 +326,18 @@ class ParametersFrame(tk.Frame):
         if cons.DEFAULT_ADD_SICKNESS:
             add_sickness_checkbox.select()
         add_sickness_checkbox.pack(fill=tk.X, pady=10)
+        wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
+        wolves_energy_gain_scale.pack(fill=tk.X)
+        self.sheep_add_sickness = tk.IntVar()
+        add_sickness_checkbox = tk.Checkbutton(
+            master=self,
+            text="Add a sickness among the sheeps",
+            variable=self.sheep_add_sickness,
+        )
+        if config.ADD_SICKNESS:
+            add_sickness_checkbox.select()
+        add_sickness_checkbox.pack(fill=tk.X)
+        self.create_control_buttons()
 
     def create_control_buttons(self):
         """Create all the control buttons of the parameters frame."""
@@ -525,7 +537,7 @@ def create_model_default_config() -> dict:
     model_config["wolf_init_energy"] = config.WOLF_INIT_ENERGY
     model_config["sheep_move_loss"] = config.SHEEP_MOVE_LOSS
     model_config["wolf_move_loss"] = config.WOLF_MOVE_LOSS
-    # add the sickness config.
+    # Add the sickness config.
     model_config["add_sickness"] = config.ADD_SICKNESS
     model_config["sickness_severity"] = config.SICKNESS_SEVERITY
     model_config["proba_sickness_transmission"] = config.PROBA_SICKNESS_TRANSMISSION
