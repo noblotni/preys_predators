@@ -87,6 +87,16 @@ class SimulationApp:
 
     def compute_population_matrix(self) -> np.ndarray:
         """Compute the population of the grid.
+            nb_sheep_sick = [pop[3] for pop in population]
+            self.right_panel.update_population_plot(
+                time=time,
+                nb_sheeps=nb_sheeps,
+                nb_wolves=nb_wolves,
+                nb_grass_over_four=nb_grass_over_four,
+                nb_sheep_sick=nb_sheep_sick,
+            )
+            sheeps_matrix, wolves_matrix = self.compute_population_matrices()
+            self.right_panel.update_grid_plot(sheeps_matrix, wolves_matrix)
 
         The population is computed to be displayed it on the grid plot.
 

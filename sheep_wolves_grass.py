@@ -5,7 +5,7 @@ import uuid
 
 from custom_errors import UnsupportedMovingMethodError
 
-# pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation
+# pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation, logging-too-many-args
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,18 +20,18 @@ class Sheep(mesa.Agent):
         energy,
         way_to_move: str = "random",
     ):
-        logging.info(
-            "[Sheep] Creating a ship agent with ID {} and energy = {}".format(
-                unique_id, energy
-            )
-        )
         super().__init__(unique_id, model)
         # note: unique_id and model attributes inherit from the Agent class
         self.energy = energy
         self.eaten_by_wolf = False
         # controls the Sheep agent's way to move on the grid (Random Walker by default)
         self.way_to_move = way_to_move
-        self.is_sick = (self.random.random() > self.model.config["sheep_sanity_proba"])
+        self.is_sick = self.random.random() > self.model.config["sheep_sanity_proba"]
+        logging.info(
+            "[Sheep] Creating a ship agent with ID {}, energy = {} and is_sick = {}".format(
+                unique_id, energy, self.is_sick
+            )
+        )
 
     def step(self):
         """Generic step for a sheep."""
@@ -104,22 +104,25 @@ class Sheep(mesa.Agent):
             logging.info(
                 "[Sheep] Sheep agent with ID {} has died.".format(self.unique_id)
             )
-        if not self in self.model.died_agents and self.is_sick:
-            dies_from_sickness = (1 - self.random.random()) > self.model.config[
-                "sickness_severity"
-            ]
-            if dies_from_sickness:
-                self.model.died_agents.append(self)
-                logging.info(
-                    "[Sheep] Sheep agent with ID {} has died from sickness.".format(
-                        self.unique_id
-                    )
+        if self.model.config["add_sickness"]:
+            if not self in self.model.died_agents and self.is_sick:
+                dies_from_sickness = (
+                    self.random.random() < self.model.config["sickness_severity"]
                 )
+                if dies_from_sickness:
+                    self.model.died_agents.append(self)
+                    logging.info(
+                        "[Sheep] Sheep agent with ID {} has died from sickness.".format(
+                            self.unique_id
+                        )
+                    )
 
     def update_sickness(self):
         """Method used to determine if the agent gets infected by sickness at this step."""
         if self.is_sick:
-            heal_from_sickness = ((1 - self.random.random()) > self.model.config["sheep_cure_proba"])
+            heal_from_sickness = (1 - self.random.random()) > self.model.config[
+                "sheep_cure_proba"
+            ]
             if heal_from_sickness:
                 self.is_sick = False
         if not self.is_sick:
@@ -128,12 +131,12 @@ class Sheep(mesa.Agent):
             for agent in cellmates:
                 if isinstance(agent, Sheep) and agent.is_sick:
                     number_surrounding_agents_infected += 1
-        get_sickness = (
-            self.random.random()
-            > number_surrounding_agents_infected
-            * self.model.config["proba_sickness_transmission"]
-        )
-        self.is_sick = get_sickness
+            get_sickness = (
+                self.random.random()
+                > number_surrounding_agents_infected
+                * self.model.config["proba_sickness_transmission"]
+            )
+            self.is_sick = get_sickness
 
 
 class Wolf(mesa.Agent):
@@ -309,7 +312,21 @@ class PreysPredatorsModel(mesa.Model):
         self.died_agents = []
         self.born_agents = []
         self.init_all_agents()
-        logging.info("[Model] Created a new Preys-Predators model successfully.")
+        print("[Model] Created a new Preys-Predators model successfully.")
+        print("[Model] Sickness added: ", str(self.config["add_sickness"]))
+        print("[Model] Sickness severity: ", str(self.config["sickness_severity"]))
+        print(
+            "[Model] Probability of transmitting the sickness: ",
+            str(self.config["proba_sickness_transmission"]),
+        )
+        print(
+            "[Model] Probability for sheeps of being born sane: ",
+            str(self.config["sheep_sanity_proba"]),
+        )
+        print(
+            "[Model] Probability of healing from sickness: ",
+            str(self.config["sheep_cure_proba"]),
+        )
 
     def init_all_agents(self):
         """Create the initial population."""
@@ -372,11 +389,14 @@ def compute_population(model: PreysPredatorsModel):
     count_sheeps = 0
     count_wolves = 0
     count_grass = 0
+    count_sick = 0
     for agent in model.scheduler.agents:
         if isinstance(agent, Sheep):
             count_sheeps += 1
+            if agent.is_sick:
+                count_sick += 1
         elif isinstance(agent, Wolf):
             count_wolves += 1
         elif isinstance(agent, Patch) and agent.grass:
             count_grass += 1
-    return (count_sheeps, count_wolves, count_grass)
+    return (count_sheeps, count_wolves, count_grass, count_sick)
