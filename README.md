@@ -21,6 +21,7 @@ cd preys_predators
 pip install -r requirements.txt
 ```
 
+<<<<<<< HEAD
 # Run the simulator GUI
 
 A GUI interface is available to run the model. To start the GUI, type:
@@ -31,3 +32,20 @@ python simulation_gui.py
 # Documentation
 
 See the documentation [here](./docs/documentation.md).
+=======
+<<<<<<< HEAD
+# Documentation
+Paper used for implementing the model: http://ccl.northwestern.edu/papers/wolfsheep.pdf
+=======
+# Run the simulator GUI
+
+A GUI interface is available to run the model. To start the GUI, type:
+```shell
+python simulation_gui.py
+```
+
+# Documentation
+
+See the documentation [here](./docs/documentation.md).
+>>>>>>> 709fa96 (Update README.)
+>>>>>>> 08fc31b (Update README.)
