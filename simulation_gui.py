@@ -86,8 +86,13 @@ class SimulationApp:
             time.sleep((1 - self.left_panel.model_speed.get() * cons.PERCENT_TO_PROBA))
 
     def compute_population_matrix(self) -> np.ndarray:
-        """Compute the population of the grid."""
-            
+        """Compute the population of the grid.
+
+        The population is computed to be displayed it on the grid plot.
+
+        Returns:
+            population_matrix (np.ndarray): matrix of the grid population
+        """
         healthy_sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
         sick_sheeps_matrix = np.zeros_like(healthy_sheeps_matrix)
         wolves_matrix = np.zeros_like(healthy_sheeps_matrix)
