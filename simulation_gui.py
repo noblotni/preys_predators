@@ -1,5 +1,6 @@
 """GUI to run the simulation."""
 import time
+from typing import Optional
 import tkinter as tk
 from tkinter import messagebox
 from threading import Thread
@@ -39,6 +40,7 @@ class SimulationApp:
             width=3 * self.window.winfo_screenwidth() // 4,
             height=self.window.winfo_screenheight(),
             bg="black",
+            app=self,
         )
         self.right_panel.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
         self.left_panel = ParametersFrame(
@@ -63,12 +65,22 @@ class SimulationApp:
             nb_sheeps = [pop[0] for pop in population]
             nb_wolves = [pop[1] for pop in population]
             nb_grass_over_four = [pop[2] // 4 for pop in population]
-            self.right_panel.update_population_plot(
-                time_list=time_list,
-                nb_sheeps=nb_sheeps,
-                nb_wolves=nb_wolves,
-                nb_grass_over_four=nb_grass_over_four,
-            )
+            if self.model_config["add_sickness"]:
+                nb_sheeps_sick = [pop[3] for pop in population]
+                self.right_panel.update_population_plot(
+                    time_list=time_list,
+                    nb_sheeps=nb_sheeps,
+                    nb_wolves=nb_wolves,
+                    nb_grass_over_four=nb_grass_over_four,
+                    nb_sheeps_sick=nb_sheeps_sick,
+                )
+            else:
+                self.right_panel.update_population_plot(
+                    time_list=time_list,
+                    nb_sheeps=nb_sheeps,
+                    nb_wolves=nb_wolves,
+                    nb_grass_over_four=nb_grass_over_four,
+                )
             population_matrix = self.compute_population_matrix()
             self.right_panel.update_grid_plot(population_matrix)
             time.sleep((1 - self.left_panel.model_speed.get() * cons.PERCENT_TO_PROBA))
@@ -81,24 +93,37 @@ class SimulationApp:
         Returns:
             population_matrix (np.ndarray): matrix of the grid population
         """
-        sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
-        wolves_matrix = np.zeros_like(sheeps_matrix)
-        grass_matrix = np.zeros_like(sheeps_matrix)
-        population_matrix = np.zeros_like(sheeps_matrix)
+        healthy_sheeps_matrix = np.zeros((config.GRID_WIDTH, config.GRID_HEIGHT))
+        sick_sheeps_matrix = np.zeros_like(healthy_sheeps_matrix)
+        wolves_matrix = np.zeros_like(healthy_sheeps_matrix)
+        grass_matrix = np.zeros_like(healthy_sheeps_matrix)
+        population_matrix = np.zeros_like(healthy_sheeps_matrix)
         # Fill the population matrix
         for cell in self.model.grid.coord_iter():
             cell_content, pos_x, pos_y = cell
             for agent in cell_content:
                 if isinstance(agent, Sheep):
-                    sheeps_matrix[pos_x, pos_y] += 1
+                    if self.model_config["add_sickness"] and agent.is_sick:
+                        sick_sheeps_matrix[pos_x, pos_y] += 1
+                    else:
+                        healthy_sheeps_matrix[pos_x, pos_y] += 1
                 elif isinstance(agent, Wolf):
                     wolves_matrix[pos_x, pos_y] += 1
                 elif isinstance(agent, Patch) and agent.grass:
                     grass_matrix[pos_x, pos_y] += 1
-            if sheeps_matrix[pos_x, pos_y] and wolves_matrix[pos_x, pos_y]:
+            # Rules for the order of display on the grid plot
+            if sick_sheeps_matrix[pos_x, pos_y] and wolves_matrix[pos_x, pos_y]:
                 population_matrix[pos_x, pos_y] = cons.WOLF
-            elif sheeps_matrix[pos_x, pos_y] and not wolves_matrix[pos_x, pos_y]:
-                population_matrix[pos_x, pos_y] = cons.SHEEP
+            elif healthy_sheeps_matrix[pos_x, pos_y] and wolves_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.WOLF
+            elif (
+                healthy_sheeps_matrix[pos_x, pos_y] and sick_sheeps_matrix[pos_x, pos_y]
+            ):
+                population_matrix[pos_x, pos_y] = cons.SICK_SHEEP
+            elif healthy_sheeps_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.HEALTHY_SHEEP
+            elif sick_sheeps_matrix[pos_x, pos_y]:
+                population_matrix[pos_x, pos_y] = cons.SICK_SHEEP
             elif wolves_matrix[pos_x, pos_y]:
                 population_matrix[pos_x, pos_y] = cons.WOLF
             elif grass_matrix[pos_x, pos_y]:
@@ -358,8 +383,9 @@ class ParametersFrame(tk.Frame):
 class PlotsFrame(tk.Frame):
     """Frame where to put plots."""
 
-    def __init__(self, master, width, height, bg):
+    def __init__(self, master, width: int, height: int, bg: int, app: SimulationApp):
         super().__init__(master=master, width=width, height=height, bg=bg)
+        self.app = app
         self.init_grid_plot()
         self.init_population_plot()
         self.create_widgets()
@@ -368,9 +394,15 @@ class PlotsFrame(tk.Frame):
         """Initialize the population plot (at the bottom right of the GUI)."""
         self.population_figure = plt.figure()
         self.pop_ax = self.population_figure.add_subplot()
-        self.pop_ax.plot([], [], label="Number of sheeps", color="blue", linewidth=4)
+        self.pop_ax.plot(
+            [], [], label="Total number of sheeps", color="blue", linewidth=4
+        )
         self.pop_ax.plot([], [], label="Number of wolves", color="red", linewidth=4)
         self.pop_ax.plot([], [], label="Grass / 4", color="green", linewidth=4)
+        if self.app.model_config["add_sickness"]:
+            self.pop_ax.plot(
+                [], [], label="NUmber of sick sheeps", color="black", linewidth=4
+            )
         self.pop_ax.set_xlabel("Time (Number of steps)")
         self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()
@@ -382,11 +414,16 @@ class PlotsFrame(tk.Frame):
         nb_sheeps: list,
         nb_wolves: list,
         nb_grass_over_four: list,
+        nb_sheeps_sick: Optional[list] = None,
     ):
         """Update the population plot with the latest data."""
         self.pop_ax.clear()
         self.pop_ax.plot(
-            time_list, nb_sheeps, label="Number of sheeps", color="blue", linewidth=4
+            time_list,
+            nb_sheeps,
+            label="Total number of sheeps",
+            color="blue",
+            linewidth=4,
         )
         self.pop_ax.fill_between(time_list, nb_sheeps, 0, color="blue", alpha=0.3)
         self.pop_ax.plot(
@@ -399,6 +436,11 @@ class PlotsFrame(tk.Frame):
         self.pop_ax.fill_between(
             time_list, nb_grass_over_four, 0, color="green", alpha=0.3
         )
+        if nb_sheeps_sick:
+            self.pop_ax.plot(time_list, nb_sheeps_sick, color="black", linewidth=4)
+            self.pop_ax.fill_between(
+                time_list, nb_sheeps_sick, 0, color="black", alpha=0.3
+            )
         self.pop_ax.set_xlabel("Time (number of steps)")
         self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()
@@ -423,9 +465,11 @@ class PlotsFrame(tk.Frame):
             ax=self.gridfig_ax,
             ticks=cons.GRID_PLOT_CBAR_TICKS,
         )
-        cbar.ax.set_yticklabels(["Empty", "Wolf", "Sheep", "Grass", "Dirt"])
+        cbar.ax.set_yticklabels(
+            ["Empty", "Wolf", "Healthy sheep", "Grass", "Dirt", "Sick sheep"]
+        )
 
-    def update_grid_plot(self, population_matrix):
+    def update_grid_plot(self, population_matrix: np.ndarray):
         """Update the grid plot with the latest data."""
         self.gridfig_ax.clear()
         self.gridfig_ax.matshow(
