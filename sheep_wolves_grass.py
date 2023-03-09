@@ -1,7 +1,7 @@
 """Implement a sheep, wolves and grass predation model."""
+import uuid
 import logging
 import mesa
-import uuid
 
 from custom_errors import UnsupportedMovingMethodError
 
