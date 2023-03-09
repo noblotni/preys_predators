@@ -7,7 +7,7 @@ from custom_errors import UnsupportedMovingMethodError
 
 # pylint: disable=consider-using-f-string, line-too-long, logging-format-interpolation, logging-too-many-args
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 
 class Sheep(mesa.Agent):
@@ -120,9 +120,9 @@ class Sheep(mesa.Agent):
     def update_sickness(self):
         """Method used to determine if the agent gets infected by sickness at this step."""
         if self.is_sick:
-            heal_from_sickness = (1 - self.random.random()) > self.model.config[
-                "sheep_cure_proba"
-            ]
+            heal_from_sickness = (
+                self.random.random() < self.model.config["sheep_cure_proba"]
+            )
             if heal_from_sickness:
                 self.is_sick = False
         if not self.is_sick:
@@ -132,8 +132,8 @@ class Sheep(mesa.Agent):
                 if isinstance(agent, Sheep) and agent.is_sick:
                     number_surrounding_agents_infected += 1
             get_sickness = (
-                self.random.random()
-                > number_surrounding_agents_infected
+                self.random.uniform(0, number_surrounding_agents_infected)
+                < number_surrounding_agents_infected
                 * self.model.config["proba_sickness_transmission"]
             )
             self.is_sick = get_sickness
