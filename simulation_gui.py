@@ -1,4 +1,5 @@
 """GUI to run the simulation."""
+import time
 import tkinter as tk
 from tkinter import messagebox
 from threading import Thread
@@ -58,18 +59,19 @@ class SimulationApp:
             self.model.step()
             population_df = self.model.datacollector.get_model_vars_dataframe()
             population = population_df["population"].to_numpy()
-            time = [i + 1 for i in range(population.shape[0])]
+            time_list = [i + 1 for i in range(population.shape[0])]
             nb_sheeps = [pop[0] for pop in population]
             nb_wolves = [pop[1] for pop in population]
             nb_grass_over_four = [pop[2] // 4 for pop in population]
             self.right_panel.update_population_plot(
-                time=time,
+                time_list=time_list,
                 nb_sheeps=nb_sheeps,
                 nb_wolves=nb_wolves,
                 nb_grass_over_four=nb_grass_over_four,
             )
             population_matrix = self.compute_population_matrix()
             self.right_panel.update_grid_plot(population_matrix)
+            time.sleep((1 - self.left_panel.model_speed.get() * cons.PERCENT_TO_PROBA))
 
     def compute_population_matrix(self) -> np.ndarray:
         """Compute the population of the grid.
@@ -116,6 +118,7 @@ class ParametersFrame(tk.Frame):
     def __init__(self, master, width, height, bg, app: SimulationApp):
         super().__init__(master=master, width=width, height=height, bg=bg)
         self.app = app
+        self.model_speed = tk.IntVar()
         self.init_nb_sheeps = tk.IntVar()
         self.init_nb_wolves = tk.IntVar()
         self.grass_regrowth_time = tk.IntVar()
@@ -157,6 +160,20 @@ class ParametersFrame(tk.Frame):
         """Create the sliders to tweak general parameters."""
         general_settings_frame = tk.Frame(master=self)
         general_settings_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        # Model speed
+        model_speed_label = tk.Label(
+            master=general_settings_frame, text="Model speed (%)"
+        )
+        model_speed_label.pack()
+        model_speed_scale = tk.Scale(
+            master=general_settings_frame,
+            from_=cons.MIN_MODEL_SPEED,
+            to_=cons.MAX_MODEL_SPEED,
+            orient=tk.HORIZONTAL,
+            variable=self.model_speed,
+        )
+        model_speed_scale.pack(fill=tk.X)
+        model_speed_scale.set(cons.DEFAULT_MODEL_SPEED)
         # General parameters scales
         label_sheeps = tk.Label(
             master=general_settings_frame, text="Initial number of sheeps: "
@@ -360,22 +377,28 @@ class PlotsFrame(tk.Frame):
         self.pop_ax.legend()
 
     def update_population_plot(
-        self, time: list, nb_sheeps: list, nb_wolves: list, nb_grass_over_four: list
+        self,
+        time_list: list,
+        nb_sheeps: list,
+        nb_wolves: list,
+        nb_grass_over_four: list,
     ):
         """Update the population plot with the latest data."""
         self.pop_ax.clear()
         self.pop_ax.plot(
-            time, nb_sheeps, label="Number of sheeps", color="blue", linewidth=4
+            time_list, nb_sheeps, label="Number of sheeps", color="blue", linewidth=4
         )
-        self.pop_ax.fill_between(time, nb_sheeps, 0, color="blue", alpha=0.3)
+        self.pop_ax.fill_between(time_list, nb_sheeps, 0, color="blue", alpha=0.3)
         self.pop_ax.plot(
-            time, nb_wolves, label="Number of wolves", color="red", linewidth=4
+            time_list, nb_wolves, label="Number of wolves", color="red", linewidth=4
         )
-        self.pop_ax.fill_between(time, nb_wolves, 0, color="red", alpha=0.3)
+        self.pop_ax.fill_between(time_list, nb_wolves, 0, color="red", alpha=0.3)
         self.pop_ax.plot(
-            time, nb_grass_over_four, label="Grass /4", color="green", linewidth=4
+            time_list, nb_grass_over_four, label="Grass /4", color="green", linewidth=4
         )
-        self.pop_ax.fill_between(time, nb_grass_over_four, 0, color="green", alpha=0.3)
+        self.pop_ax.fill_between(
+            time_list, nb_grass_over_four, 0, color="green", alpha=0.3
+        )
         self.pop_ax.set_xlabel("Time (number of steps)")
         self.pop_ax.set_ylabel("Population")
         self.pop_ax.grid()
