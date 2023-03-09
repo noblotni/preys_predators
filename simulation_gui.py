@@ -17,7 +17,9 @@ class SimulationApp:
 
     def __init__(self):
         self.window = tk.Tk()
-        self.window.geometry("1000x800")
+        self.window.geometry(
+            f"{self.window.winfo_screenwidth()}x{self.window.winfo_screenheight()}"
+        )
         self.window.title("Preys Predators Simulation")
         self.model_config = create_model_default_config()
         self.model = PreysPredatorsModel(config=self.model_config)
@@ -33,19 +35,19 @@ class SimulationApp:
         """Create the widgets of the whole application."""
         self.right_panel = PlotsFrame(
             master=self.window,
-            width=3 * self.window.winfo_width() // 4,
-            height=self.window.winfo_height(),
+            width=3 * self.window.winfo_screenwidth() // 4,
+            height=self.window.winfo_screenheight(),
             bg="black",
         )
-        self.right_panel.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT)
+        self.right_panel.pack(fill=tk.BOTH, side=tk.RIGHT, expand=True)
         self.left_panel = ParametersFrame(
             master=self.window,
-            width=self.window.winfo_width() // 4,
-            height=self.window.winfo_height(),
+            width=self.window.winfo_screenwidth() // 4,
+            height=self.window.winfo_screenheight(),
             bg="black",
             app=self,
         )
-        self.left_panel.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT)
+        self.left_panel.pack(fill=tk.BOTH, side=tk.RIGHT)
 
     def run_model(self):
         """Run the prey-predator model."""
@@ -114,23 +116,54 @@ class ParametersFrame(tk.Frame):
     def __init__(self, master, width, height, bg, app: SimulationApp):
         super().__init__(master=master, width=width, height=height, bg=bg)
         self.app = app
+        self.init_nb_sheeps = tk.IntVar()
+        self.init_nb_wolves = tk.IntVar()
+        self.grass_regrowth_time = tk.IntVar()
+        self.wolf_reproduction_rate = tk.IntVar()
+        self.wolf_gain_from_sheep = tk.IntVar()
+        self.sheep_reproduction_rate = tk.IntVar()
+        self.sheep_gain_from_grass = tk.IntVar()
+        self.sheep_add_sickness = tk.IntVar()
         self.create_widgets()
 
     def create_widgets(self):
         """Create all the widgets on the parameters frame."""
         # Canva to display an image
-        self.canvas_sheep = tk.Canvas(master=self, bg="black", highlightthickness=0)
+        self.canvas_sheep = tk.Canvas(
+            master=self,
+            bg="black",
+            highlightthickness=0,
+            width=self.winfo_reqwidth(),
+            height=self.winfo_reqheight() // 3,
+        )
         self.canvas_sheep.pack(fill=tk.BOTH, expand=True)
         self.img = Image.open(cons.ASCII_SHEEPS_PATH)
         # Resize image to fit the canvas (To Do)
         self.img = ImageTk.PhotoImage(self.img)
-        self.canvas_sheep.create_image(80, 80, anchor=tk.NW, image=self.img)
-        # Parameters scales
-        label_sheeps = tk.Label(master=self, text="Initial number of sheeps: ")
-        label_sheeps.pack()
-        self.init_nb_sheeps = tk.IntVar()
+        self.canvas_sheep.create_image(
+            self.canvas_sheep.winfo_reqwidth() // 2,
+            self.canvas_sheep.winfo_reqheight() // 2,
+            anchor=tk.CENTER,
+            image=self.img,
+        )
+        self.create_general_settings()
+        self.agents_frame = tk.Frame(master=self)
+        self.agents_frame.pack(expand=True, fill=tk.BOTH, padx=10)
+        self.create_sheeps_settings()
+        self.create_wolves_settings()
+        self.create_control_buttons()
+
+    def create_general_settings(self):
+        """Create the sliders to tweak general parameters."""
+        general_settings_frame = tk.Frame(master=self)
+        general_settings_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        # General parameters scales
+        label_sheeps = tk.Label(
+            master=general_settings_frame, text="Initial number of sheeps: "
+        )
+        label_sheeps.pack(pady=10)
         nb_sheeps_scale = tk.Scale(
-            master=self,
+            master=general_settings_frame,
             from_=cons.MIN_INIT_NB_SHEEPS,
             to_=cons.MAX_INIT_NB_SHEEPS,
             orient=tk.HORIZONTAL,
@@ -138,11 +171,12 @@ class ParametersFrame(tk.Frame):
         )
         nb_sheeps_scale.set(cons.DEFAULT_INIT_NB_SHEEPS)
         nb_sheeps_scale.pack(fill=tk.X)
-        label_wolves = tk.Label(master=self, text="Initial number of wolves: ")
-        label_wolves.pack()
-        self.init_nb_wolves = tk.IntVar()
+        label_wolves = tk.Label(
+            master=general_settings_frame, text="Initial number of wolves: "
+        )
+        label_wolves.pack(pady=10)
         nb_wolves_scale = tk.Scale(
-            master=self,
+            master=general_settings_frame,
             from_=cons.MIN_INIT_NB_WOLVES,
             to_=cons.MAX_INIT_NB_WOLVES,
             orient=tk.HORIZONTAL,
@@ -151,12 +185,11 @@ class ParametersFrame(tk.Frame):
         nb_wolves_scale.set(cons.DEFAULT_INIT_NB_WOLVES)
         nb_wolves_scale.pack(fill=tk.X)
         grass_regrowth_label = tk.Label(
-            master=self, text="Grass regrowth time (steps):"
+            master=general_settings_frame, text="Grass regrowth time (steps):"
         )
-        grass_regrowth_label.pack()
-        self.grass_regrowth_time = tk.IntVar()
+        grass_regrowth_label.pack(pady=10)
         grass_regrowth_scale = tk.Scale(
-            master=self,
+            master=general_settings_frame,
             from_=cons.MIN_GRASS_REGROWTH_TIME,
             to_=cons.MAX_GRASS_REGROWTH_TIME,
             variable=self.grass_regrowth_time,
@@ -164,27 +197,24 @@ class ParametersFrame(tk.Frame):
         )
         grass_regrowth_scale.set(cons.DEFAULT_GRASS_REGROWTH_TIME)
         grass_regrowth_scale.pack(fill=tk.X)
-        label_sheeps_reproduction = tk.Label(
-            master=self, text="Sheeps' reproduction rate (%):"
+
+    def create_wolves_settings(self):
+        """Create the sliders to modify behavior of the wolves."""
+        wolves_settings_frame = tk.Frame(master=self.agents_frame)
+        wolves_settings_frame.pack(
+            expand=True, side=tk.LEFT, fill=tk.BOTH, padx=10, pady=10
         )
-        label_sheeps_reproduction.pack()
-        self.sheep_reproduction_rate = tk.IntVar()
-        sheeps_reproduction_scale = tk.Scale(
-            master=self,
-            from_=cons.MIN_SHEEP_REPRODUCTION_RATE,
-            to_=cons.MAX_SHEEP_REPRODUCTION_RATE,
-            orient=tk.HORIZONTAL,
-            variable=self.sheep_reproduction_rate,
+        wolves_settings_label = tk.Label(
+            master=wolves_settings_frame, text="Wolf settings"
         )
-        sheeps_reproduction_scale.set(cons.DEFAULT_SHEEP_REPRODUCTION_RATE)
-        sheeps_reproduction_scale.pack(fill=tk.X)
+        wolves_settings_label.pack()
+        # Slider for the wolf reproduction rate
         label_wolves_reproduction = tk.Label(
-            master=self, text="Wolves' reproduction rate (%): "
+            master=wolves_settings_frame, text="Wolves' reproduction rate (%): "
         )
-        label_wolves_reproduction.pack()
-        self.wolf_reproduction_rate = tk.IntVar()
+        label_wolves_reproduction.pack(pady=10)
         wolves_reproduction_scale = tk.Scale(
-            master=self,
+            master=wolves_settings_frame,
             from_=cons.MIN_WOLF_REPRODUCTION_RATE,
             to_=cons.MAX_WOLF_REPRODUCTION_RATE,
             orient=tk.HORIZONTAL,
@@ -192,27 +222,15 @@ class ParametersFrame(tk.Frame):
         )
         wolves_reproduction_scale.pack(fill=tk.X)
         wolves_reproduction_scale.set(cons.DEFAULT_WOLF_REPRODUCTION_RATE)
-        label_sheeps_energy = tk.Label(
-            master=self, text="Sheeps' energy gain from food:"
-        )
-        label_sheeps_energy.pack()
-        self.sheep_gain_from_grass = tk.IntVar()
-        sheeps_energy_gain_scale = tk.Scale(
-            master=self,
-            from_=cons.MIN_SHEEP_GAIN_FROM_GRASS,
-            to_=cons.MAX_SHEEP_GAIN_FROM_GRASS,
-            orient=tk.HORIZONTAL,
-            variable=self.sheep_gain_from_grass,
-        )
-        sheeps_energy_gain_scale.set(cons.DEFAULT_SHEEP_GAIN_FROM_GRASS)
-        sheeps_energy_gain_scale.pack(fill=tk.X)
+
+        # Slider for the energy gain of the wolves when they
+        # eat sheeps
         label_wolves_energy = tk.Label(
-            master=self, text="Wolves' energy gain from food:"
+            master=wolves_settings_frame, text="Wolves' energy gain from food:"
         )
-        label_wolves_energy.pack()
-        self.wolf_gain_from_sheep = tk.IntVar()
+        label_wolves_energy.pack(pady=10)
         wolves_energy_gain_scale = tk.Scale(
-            master=self,
+            master=wolves_settings_frame,
             from_=cons.MIN_WOLF_GAIN_FROM_SHEEP,
             to_=cons.MAX_WOLF_GAIN_FROM_SHEEP,
             orient=tk.HORIZONTAL,
@@ -220,16 +238,57 @@ class ParametersFrame(tk.Frame):
         )
         wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
         wolves_energy_gain_scale.pack(fill=tk.X)
-        self.sheep_add_sickness = tk.IntVar()
+
+    def create_sheeps_settings(self):
+        """Create the widgets to change the sheeps behavior."""
+        sheeps_settings_frame = tk.Frame(master=self.agents_frame)
+        sheeps_settings_frame.pack(
+            expand=True, side=tk.LEFT, fill=tk.BOTH, padx=10, pady=10
+        )
+        sheeps_settings_label = tk.Label(
+            master=sheeps_settings_frame, text="Sheep settings"
+        )
+        sheeps_settings_label.pack()
+
+        # Slider for the sheep reproduction rate
+        label_sheeps_reproduction = tk.Label(
+            master=sheeps_settings_frame, text="Sheeps' reproduction rate (%):"
+        )
+        label_sheeps_reproduction.pack(pady=10)
+        sheeps_reproduction_scale = tk.Scale(
+            master=sheeps_settings_frame,
+            from_=cons.MIN_SHEEP_REPRODUCTION_RATE,
+            to_=cons.MAX_SHEEP_REPRODUCTION_RATE,
+            orient=tk.HORIZONTAL,
+            variable=self.sheep_reproduction_rate,
+        )
+        sheeps_reproduction_scale.set(cons.DEFAULT_SHEEP_REPRODUCTION_RATE)
+        sheeps_reproduction_scale.pack(fill=tk.X)
+
+        # Slider for the sheep energy gain when it eats grass
+        label_sheeps_energy = tk.Label(
+            master=sheeps_settings_frame, text="Sheeps' energy gain from food:"
+        )
+        label_sheeps_energy.pack(pady=10)
+        sheeps_energy_gain_scale = tk.Scale(
+            master=sheeps_settings_frame,
+            from_=cons.MIN_SHEEP_GAIN_FROM_GRASS,
+            to_=cons.MAX_SHEEP_GAIN_FROM_GRASS,
+            orient=tk.HORIZONTAL,
+            variable=self.sheep_gain_from_grass,
+        )
+        sheeps_energy_gain_scale.set(cons.DEFAULT_SHEEP_GAIN_FROM_GRASS)
+        sheeps_energy_gain_scale.pack(fill=tk.X)
+
+        # Checkbox to add a disease among the sheeps
         add_sickness_checkbox = tk.Checkbutton(
-            master=self,
+            master=sheeps_settings_frame,
             text="Add a sickness among the sheeps",
             variable=self.sheep_add_sickness,
         )
         if cons.DEFAULT_ADD_SICKNESS:
             add_sickness_checkbox.select()
-        add_sickness_checkbox.pack(fill=tk.X)
-        self.create_control_buttons()
+        add_sickness_checkbox.pack(fill=tk.X, pady=10)
 
     def create_control_buttons(self):
         """Create all the control buttons of the parameters frame."""
