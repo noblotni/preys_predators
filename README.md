@@ -12,7 +12,7 @@ This project requires Pythonn 3.9 or higher to be run.
 ```shell
 git clone https://github.com/noblotni/preys_predators
 ```
-2. Got to the `preys_predators` repository:
+2. Go to the `preys_predators` repository:
 ```shell
 cd preys_predators
 ```

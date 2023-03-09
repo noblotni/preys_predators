@@ -328,7 +328,7 @@ class ParametersFrame(tk.Frame):
             text="Add a sickness among the sheeps",
             variable=self.sheep_add_sickness,
         )
-        if cons.DEFAULT_ADD_SICKNESS:
+        if config.ADD_SICKNESS:
             add_sickness_checkbox.select()
         add_sickness_checkbox.pack(fill=tk.X, pady=10)
 
@@ -401,7 +401,7 @@ class PlotsFrame(tk.Frame):
         self.pop_ax.plot([], [], label="Grass / 4", color="green", linewidth=4)
         if self.app.model_config["add_sickness"]:
             self.pop_ax.plot(
-                [], [], label="NUmber of sick sheeps", color="black", linewidth=4
+                [], [], label="Number of sick sheeps", color="black", linewidth=4
             )
         self.pop_ax.set_xlabel("Time (Number of steps)")
         self.pop_ax.set_ylabel("Population")
@@ -437,7 +437,13 @@ class PlotsFrame(tk.Frame):
             time_list, nb_grass_over_four, 0, color="green", alpha=0.3
         )
         if nb_sheeps_sick:
-            self.pop_ax.plot(time_list, nb_sheeps_sick, color="black", linewidth=4)
+            self.pop_ax.plot(
+                time_list,
+                nb_sheeps_sick,
+                label="Number of sick sheeps",
+                color="black",
+                linewidth=4,
+            )
             self.pop_ax.fill_between(
                 time_list, nb_sheeps_sick, 0, color="black", alpha=0.3
             )
@@ -529,7 +535,12 @@ def create_model_default_config() -> dict:
     model_config["wolf_init_energy"] = config.WOLF_INIT_ENERGY
     model_config["sheep_move_loss"] = config.SHEEP_MOVE_LOSS
     model_config["wolf_move_loss"] = config.WOLF_MOVE_LOSS
-    model_config["add_sickness"] = cons.DEFAULT_ADD_SICKNESS
+    # Add the sickness config.
+    model_config["add_sickness"] = config.ADD_SICKNESS
+    model_config["sickness_severity"] = config.SICKNESS_SEVERITY
+    model_config["proba_sickness_transmission"] = config.PROBA_SICKNESS_TRANSMISSION
+    model_config["sheep_sanity_proba"] = config.SHEEP_SANITY_PROBA
+    model_config["sheep_cure_proba"] = config.SHEEP_CURE_PROBA
     return model_config
 
 

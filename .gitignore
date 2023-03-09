@@ -4,6 +4,9 @@
 # experiments folder
 experiments/
 
+# ideas
+ideas/
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

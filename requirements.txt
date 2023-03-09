@@ -1,3 +1,7 @@
-mesa
-matplotlib
 numpy
+tkinter
+mesa
+uuid
+pathlib
+PIL
+matplotlib
