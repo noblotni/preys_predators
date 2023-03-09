@@ -3,8 +3,11 @@ from pathlib import Path
 import matplotlib as mpl
 
 PERCENT_TO_PROBA = 1 / 100
+SECOND_TO_MSECOND = 1000
 
 # Default constants
+# Model speed (%)
+DEFAULT_MODEL_SPEED = 100
 # Number of sheeps at the first step
 DEFAULT_INIT_NB_SHEEPS = 100
 # Number of wolves at the first step
@@ -26,6 +29,8 @@ DEFAULT_ADD_SICKNESS = False
 # GUI
 # Bounds of the parameters which
 # can be set in the GUI
+MIN_MODEL_SPEED = 1
+MAX_MODEL_SPEED = 100
 MIN_INIT_NB_SHEEPS = 1
 MAX_INIT_NB_SHEEPS = 200
 MIN_INIT_NB_WOLVES = 1
@@ -52,26 +57,43 @@ ASCII_SHEEPS_PATH = Path("./assets/ascii_sheeps.png")
 # Constants for the colors of the pixels on the grid plot
 EMPTY_CASE = 0
 WOLF = 1
-SHEEP = 2
+HEALTHY_SHEEP = 2
 GREEN_PATCH = 3
 BROWN_PATCH = 4
+SICK_SHEEP = 5
 EMPTY_CASE_COLOR = "black"
 WOLF_COLOR = "pink"
-SHEEP_COLOR = "white"
+HEALTHY_SHEEP_COLOR = "white"
+SICK_SHEEP_COLOR = "yellow"
 GREEN_PATCH_COLOR = "green"
 BROWN_PATCH_COLOR = "brown"
 GRID_PLOT_CMAP = mpl.colors.ListedColormap(
-    [EMPTY_CASE_COLOR, WOLF_COLOR, SHEEP_COLOR, GREEN_PATCH_COLOR, BROWN_PATCH_COLOR]
+    [
+        EMPTY_CASE_COLOR,
+        WOLF_COLOR,
+        HEALTHY_SHEEP_COLOR,
+        GREEN_PATCH_COLOR,
+        BROWN_PATCH_COLOR,
+        SICK_SHEEP_COLOR,
+    ]
 )
 GRID_PLOT_CMAP_BOUNDS = [
     EMPTY_CASE - 0.5,
     EMPTY_CASE + 0.5,
     WOLF + 0.5,
-    SHEEP + 0.5,
+    HEALTHY_SHEEP + 0.5,
     GREEN_PATCH + 0.5,
     BROWN_PATCH + 0.5,
+    SICK_SHEEP + 0.5,
 ]
 GRID_PLOT_CMAP_NORM = mpl.colors.BoundaryNorm(
     boundaries=GRID_PLOT_CMAP_BOUNDS, ncolors=GRID_PLOT_CMAP.N
 )
-GRID_PLOT_CBAR_TICKS = [EMPTY_CASE, WOLF, SHEEP, GREEN_PATCH, BROWN_PATCH]
+GRID_PLOT_CBAR_TICKS = [
+    EMPTY_CASE,
+    WOLF,
+    HEALTHY_SHEEP,
+    GREEN_PATCH,
+    BROWN_PATCH,
+    SICK_SHEEP,
+]
