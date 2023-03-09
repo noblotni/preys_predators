@@ -328,16 +328,57 @@ class ParametersFrame(tk.Frame):
         add_sickness_checkbox.pack(fill=tk.X, pady=10)
         wolves_energy_gain_scale.set(cons.DEFAULT_WOLF_GAIN_FROM_SHEEP)
         wolves_energy_gain_scale.pack(fill=tk.X)
-        self.sheep_add_sickness = tk.IntVar()
+
+    def create_sheeps_settings(self):
+        """Create the widgets to change the sheeps behavior."""
+        sheeps_settings_frame = tk.Frame(master=self.agents_frame)
+        sheeps_settings_frame.pack(
+            expand=True, side=tk.LEFT, fill=tk.BOTH, padx=10, pady=10
+        )
+        sheeps_settings_label = tk.Label(
+            master=sheeps_settings_frame, text="Sheep settings"
+        )
+        sheeps_settings_label.pack()
+
+        # Slider for the sheep reproduction rate
+        label_sheeps_reproduction = tk.Label(
+            master=sheeps_settings_frame, text="Sheeps' reproduction rate (%):"
+        )
+        label_sheeps_reproduction.pack(pady=10)
+        sheeps_reproduction_scale = tk.Scale(
+            master=sheeps_settings_frame,
+            from_=cons.MIN_SHEEP_REPRODUCTION_RATE,
+            to_=cons.MAX_SHEEP_REPRODUCTION_RATE,
+            orient=tk.HORIZONTAL,
+            variable=self.sheep_reproduction_rate,
+        )
+        sheeps_reproduction_scale.set(cons.DEFAULT_SHEEP_REPRODUCTION_RATE)
+        sheeps_reproduction_scale.pack(fill=tk.X)
+
+        # Slider for the sheep energy gain when it eats grass
+        label_sheeps_energy = tk.Label(
+            master=sheeps_settings_frame, text="Sheeps' energy gain from food:"
+        )
+        label_sheeps_energy.pack(pady=10)
+        sheeps_energy_gain_scale = tk.Scale(
+            master=sheeps_settings_frame,
+            from_=cons.MIN_SHEEP_GAIN_FROM_GRASS,
+            to_=cons.MAX_SHEEP_GAIN_FROM_GRASS,
+            orient=tk.HORIZONTAL,
+            variable=self.sheep_gain_from_grass,
+        )
+        sheeps_energy_gain_scale.set(cons.DEFAULT_SHEEP_GAIN_FROM_GRASS)
+        sheeps_energy_gain_scale.pack(fill=tk.X)
+
+        # Checkbox to add a disease among the sheeps
         add_sickness_checkbox = tk.Checkbutton(
-            master=self,
+            master=sheeps_settings_frame,
             text="Add a sickness among the sheeps",
             variable=self.sheep_add_sickness,
         )
         if config.ADD_SICKNESS:
             add_sickness_checkbox.select()
-        add_sickness_checkbox.pack(fill=tk.X)
-        self.create_control_buttons()
+        add_sickness_checkbox.pack(fill=tk.X, pady=10)
 
     def create_control_buttons(self):
         """Create all the control buttons of the parameters frame."""
