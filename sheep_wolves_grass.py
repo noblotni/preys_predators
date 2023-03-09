@@ -1,6 +1,6 @@
 """Implement a sheep, wolves and grass predation model."""
-import mesa
 import uuid
+import mesa
 
 
 class Sheep(mesa.Agent):
